@@ -80,6 +80,7 @@ export default function Booking() {
         event: '',
         message: '',
       });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_error) {
       setSubmitStatus('error');
     } finally {

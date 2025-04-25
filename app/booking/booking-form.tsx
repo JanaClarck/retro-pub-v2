@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react'; // Added Suspense just in case, though likely not needed here
+import { useState, useEffect } from 'react'; // Removed unused Suspense import
 import { useSearchParams } from 'next/navigation';
 
 // Keep the events data or import it if it's shared

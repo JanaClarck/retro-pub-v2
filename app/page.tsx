@@ -124,7 +124,7 @@ export default function Home() {
                 the perfect atmosphere for any occasion.
               </p>
               <p className="text-gray-700 mb-4">
-                Whether you're looking for a quiet drink, live music, or a night of
+                Whether you&apos;re looking for a quiet drink, live music, or a night of
                 laughter, Retro Pub has something for everyone.
               </p>
               <Link

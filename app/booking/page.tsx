@@ -80,7 +80,7 @@ export default function Booking() {
         event: '',
         message: '',
       });
-    } catch (error) {
+    } catch (_error) {
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
@@ -95,7 +95,7 @@ export default function Booking() {
         {submitStatus === 'success' ? (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
             <p className="font-bold">Booking Successful!</p>
-            <p>We've received your booking request and will confirm your reservation shortly.</p>
+            <p>We&apos;ve received your booking request and will confirm your reservation shortly.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">

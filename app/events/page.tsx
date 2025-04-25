@@ -66,7 +66,6 @@ const eventTypes = [
 
 export default function Events() {
   const [selectedType, setSelectedType] = useState('all');
-  const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
 
   const filteredEvents = selectedType === 'all'
     ? events

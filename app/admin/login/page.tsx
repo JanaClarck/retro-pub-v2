@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, getAuth } from "firebase/auth";
-import firebaseApp from "@/lib/firebase";
+import { auth } from "../../../lib/firebase";
+
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -11,7 +12,6 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const auth = getAuth(firebaseApp);
 
   // Placeholder: Add protected route logic here (e.g., check if user is already authenticated)
 

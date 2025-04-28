@@ -1,30 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
+import { getAuth, signOut, User } from "firebase/auth";
 import firebaseApp from "@/lib/firebase";
+import { useAdminAuth } from "./useAdminAuth";
 
 export default function AdminDashboard() {
-  const [user, setUser] = useState<User | null | undefined>(undefined);
+  const user = useAdminAuth();
   const router = useRouter();
   const auth = getAuth(firebaseApp);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (!firebaseUser) {
-        router.replace("/admin/login");
-      } else {
-        setUser(firebaseUser);
-      }
-    });
-    return () => unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth, router]);
-
   const handleLogout = async () => {
-    await signOut(auth);
-    router.replace("/admin/login");
+    try {
+      await signOut(auth);
+      router.replace("/admin/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   if (user === undefined) {
@@ -36,7 +29,6 @@ export default function AdminDashboard() {
   }
 
   if (user === null) {
-    // This should not render, as the hook will redirect, but for type safety:
     return null;
   }
 

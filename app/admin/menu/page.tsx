@@ -64,7 +64,6 @@ export default function AdminMenuPage() {
       }
     });
     return () => unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth, router]);
 
   // Fetch menu items

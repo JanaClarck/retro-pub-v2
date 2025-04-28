@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAuth, signOut, User } from "firebase/auth";
+import { getAuth, signOut } from "firebase/auth";
 import firebaseApp from "@/lib/firebase";
 import { useAdminAuth } from "./useAdminAuth";
 

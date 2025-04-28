@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import {
-  getStorage,
   ref,
   uploadBytesResumable,
   getDownloadURL,
@@ -11,7 +10,7 @@ import {
   listAll,
   StorageReference,
 } from "firebase/storage";
-import firebaseApp from "@/lib/firebase";
+import { storage } from "@/lib/firebase";
 import { useAdminAuth } from "../useAdminAuth";
 
 interface StorageImage {
@@ -41,40 +40,44 @@ export default function AdminGalleryPage() {
   const [deleteImage, setDeleteImage] = useState<StorageImage | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const storage = getStorage(firebaseApp);
-
-  // Fetch images from all folders
   const fetchImages = async () => {
+    if (!user) return;
+    
     setLoading(true);
     setError("");
+    
     try {
       const allImages: StorageImage[] = [];
       
-      // Fetch images from each folder
       for (const folder of FOLDERS) {
         const folderRef = ref(storage, folder.id);
-        const result = await listAll(folderRef);
         
-        // Get download URLs for all images in this folder
-        const folderImages = await Promise.all(
-          result.items.map(async (itemRef) => {
-            const url = await getDownloadURL(itemRef);
-            return {
-              name: itemRef.name,
-              url,
-              ref: itemRef,
-              folder: folder.id,
-            };
-          })
-        );
-        
-        allImages.push(...folderImages);
+        try {
+          const result = await listAll(folderRef);
+          console.log(`Found ${result.items.length} items in ${folder.id}`);
+          
+          for (const item of result.items) {
+            try {
+              const url = await getDownloadURL(item);
+              allImages.push({
+                name: item.name,
+                url,
+                ref: item,
+                folder: folder.id,
+              });
+            } catch (err) {
+              console.error(`Error getting URL for ${item.fullPath}:`, err);
+            }
+          }
+        } catch (err) {
+          console.error(`Error listing ${folder.id}:`, err);
+        }
       }
       
       setImages(allImages);
     } catch (err) {
+      console.error('Error fetching images:', err);
       setError("Failed to load images. Please try again.");
-      console.error("Error fetching images:", err);
     } finally {
       setLoading(false);
     }
@@ -88,7 +91,7 @@ export default function AdminGalleryPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     setUploading(true);
     setUploadProgress(0);
@@ -96,14 +99,19 @@ export default function AdminGalleryPage() {
     setSuccess("");
 
     try {
-      // Create a storage reference in the selected folder
-      const storagePath = `${selectedFolder}/${Date.now()}_${file.name}`;
-      const storageRef = ref(storage, storagePath);
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Please select an image file');
+      }
 
-      // Upload the file
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('File size must be less than 5MB');
+      }
+
+      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const storageRef = ref(storage, `${selectedFolder}/${fileName}`);
+
       const uploadTask = uploadBytesResumable(storageRef, file);
 
-      // Return a promise that resolves when the upload is complete
       await new Promise((resolve, reject) => {
         uploadTask.on(
           "state_changed",
@@ -111,12 +119,8 @@ export default function AdminGalleryPage() {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             setUploadProgress(Math.round(progress));
           },
-          (error) => {
-            reject(error);
-          },
-          () => {
-            resolve(uploadTask);
-          }
+          reject,
+          () => resolve(uploadTask)
         );
       });
 
@@ -125,11 +129,10 @@ export default function AdminGalleryPage() {
         fileInputRef.current.value = "";
       }
       
-      // Refresh the image list
       await fetchImages();
     } catch (err) {
-      setError("Failed to upload image. Please try again.");
-      console.error("Upload error:", err);
+      console.error('Upload error:', err);
+      setError(err instanceof Error ? err.message : "Failed to upload image. Please try again.");
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -137,6 +140,8 @@ export default function AdminGalleryPage() {
   };
 
   const handleDelete = async (image: StorageImage) => {
+    if (!user) return;
+
     setError("");
     setSuccess("");
 
@@ -146,8 +151,8 @@ export default function AdminGalleryPage() {
       await fetchImages();
       setDeleteImage(null);
     } catch (err) {
+      console.error('Delete error:', err);
       setError("Failed to delete image. Please try again.");
-      console.error("Delete error:", err);
     }
   };
 
@@ -163,7 +168,6 @@ export default function AdminGalleryPage() {
     return null;
   }
 
-  // Group images by folder
   const imagesByFolder = images.reduce((acc, image) => {
     if (!acc[image.folder]) {
       acc[image.folder] = [];
@@ -190,10 +194,10 @@ export default function AdminGalleryPage() {
                   value={selectedFolder}
                   onChange={(e) => setSelectedFolder(e.target.value)}
                   disabled={uploading}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500"
+                  className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                 >
                   {FOLDERS.map((folder) => (
-                    <option key={folder.id} value={folder.id}>
+                    <option key={folder.id} value={folder.id} className="py-1">
                       {folder.name}
                     </option>
                   ))}
@@ -253,11 +257,11 @@ export default function AdminGalleryPage() {
           {!loading && FOLDERS.map((folder) => (
             <div key={folder.id} className="mb-8">
               <h2 className="text-xl font-semibold mb-4">{folder.name}</h2>
-              {imagesByFolder[folder.id]?.length === 0 ? (
+              {!imagesByFolder[folder.id] || imagesByFolder[folder.id].length === 0 ? (
                 <p className="text-gray-500 italic">No images in this folder</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {imagesByFolder[folder.id]?.map((image) => (
+                  {imagesByFolder[folder.id].map((image) => (
                     <div
                       key={image.ref.fullPath}
                       className="relative bg-white rounded-lg shadow overflow-hidden group"

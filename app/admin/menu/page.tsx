@@ -305,7 +305,7 @@ export default function AdminMenuPage() {
                           className="w-full px-2 py-1 border border-gray-300 rounded-md"
                         />
                       ) : (
-                        item.price.toFixed(2)
+                        typeof item.price === 'number' ? item.price.toFixed(2) : "—"
                       )}
                     </td>
                     <td className="px-4 py-2 flex flex-col gap-2 min-w-[120px]">

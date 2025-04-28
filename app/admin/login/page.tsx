@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, getAuth } from "firebase/auth";
-import { auth } from "../../../lib/firebase";
-
+import firebaseApp from "@/lib/firebase";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -12,6 +11,7 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const auth = getAuth(firebaseApp);
 
   // Placeholder: Add protected route logic here (e.g., check if user is already authenticated)
 
@@ -22,8 +22,12 @@ export default function AdminLoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/admin");
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please try again.");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

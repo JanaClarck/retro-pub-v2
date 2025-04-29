@@ -1,13 +1,11 @@
-import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { app } from './firebase';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from './firebase';
 
 export interface FirestoreDocument {
   id: string;
   createdAt: string;
   updatedAt: string;
 }
-
-export const db = getFirestore(app);
 
 export async function getDocument<T>(collectionName: string, documentId: string): Promise<T | null> {
   try {

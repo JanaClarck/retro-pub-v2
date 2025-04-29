@@ -16,7 +16,8 @@ import { db, storage } from '@/firebase/client';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { withAdminAuth } from '@/components/auth/withAdminAuth';
 import { Card, Button } from '@/components/ui';
-import { EventForm, Event } from '@/components/admin/events/EventForm';
+import { EventForm } from '@/components/admin/events/EventForm';
+import { Event } from '@/services/events';
 import { EventList } from '@/components/admin/events/EventList';
 
 function EventsPage() {
@@ -55,7 +56,7 @@ function EventsPage() {
   }, []);
 
   // Create or update event
-  const handleSubmit = async (eventData: Omit<Event, 'id'>) => {
+  const handleSubmit = async (eventData: Omit<Event, 'id' | 'createdAt'>) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -64,7 +65,10 @@ function EventsPage() {
         await updateDoc(doc(db, 'events', selectedEvent.id), eventData);
       } else {
         // Create new event
-        await addDoc(collection(db, 'events'), eventData);
+        await addDoc(collection(db, 'events'), {
+          ...eventData,
+          createdAt: Date.now()
+        });
       }
       await fetchEvents();
       setIsFormOpen(false);
@@ -130,7 +134,7 @@ function EventsPage() {
         {isFormOpen ? (
           <Card className="p-6">
             <EventForm
-              event={selectedEvent}
+              initialData={selectedEvent}
               onSubmit={handleSubmit}
               onCancel={() => {
                 setIsFormOpen(false);

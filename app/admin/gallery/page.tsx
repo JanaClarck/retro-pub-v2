@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, addDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
-import { ref, deleteObject, listAll } from 'firebase/storage';
-import { db, storage } from '@/firebase/client';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { withAdminAuth } from '@/components/auth/withAdminAuth';
 import { GalleryAdminView, GalleryImage } from '@/components/admin/gallery/GalleryAdminView';
 import { GalleryCategory } from '@/components/admin/gallery/GalleryCategorySelector';
+import { getGalleryCategories, getGalleryImages, addGalleryCategory, deleteGalleryCategory, addGalleryImage, deleteGalleryImage, ensureDefaultCategory } from '@/services/gallery';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '@/firebase/client';
 
 function GalleryPage() {
   const [categories, setCategories] = useState<GalleryCategory[]>([]);
@@ -20,24 +20,15 @@ function GalleryPage() {
     setIsLoading(true);
     setError(null);
     try {
+      // Ensure at least one category exists
+      await ensureDefaultCategory();
+      
       // Fetch categories
-      const categoriesSnapshot = await getDocs(
-        query(collection(db, 'galleryCategories'), orderBy('name'))
-      );
-      const fetchedCategories: GalleryCategory[] = [];
-      categoriesSnapshot.forEach((doc) => {
-        fetchedCategories.push({ id: doc.id, ...doc.data() } as GalleryCategory);
-      });
+      const fetchedCategories = await getGalleryCategories();
       setCategories(fetchedCategories);
 
       // Fetch images
-      const imagesSnapshot = await getDocs(
-        query(collection(db, 'galleryImages'), orderBy('createdAt', 'desc'))
-      );
-      const fetchedImages: GalleryImage[] = [];
-      imagesSnapshot.forEach((doc) => {
-        fetchedImages.push({ id: doc.id, ...doc.data() } as GalleryImage);
-      });
+      const fetchedImages = await getGalleryImages();
       setImages(fetchedImages);
     } catch (err) {
       console.error('Error fetching gallery data:', err);
@@ -54,11 +45,7 @@ function GalleryPage() {
   // Add new category
   const handleAddCategory = async (name: string) => {
     try {
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      await addDoc(collection(db, 'galleryCategories'), {
-        name,
-        slug,
-      });
+      await addGalleryCategory(name);
       await fetchData();
     } catch (err) {
       console.error('Error adding category:', err);
@@ -69,26 +56,12 @@ function GalleryPage() {
   // Delete category and all its images
   const handleDeleteCategory = async (category: GalleryCategory) => {
     try {
-      // Delete all images in the category from Storage
-      const storageRef = ref(storage, `gallery/${category.id}`);
-      const storageItems = await listAll(storageRef);
-      await Promise.all(
-        storageItems.items.map(async (imageRef) => {
-          await deleteObject(imageRef);
-        })
-      );
-
-      // Delete all image documents in this category
+      // Delete all images in this category
       const categoryImages = images.filter(img => img.categoryId === category.id);
-      await Promise.all(
-        categoryImages.map(async (image) => {
-          await deleteDoc(doc(db, 'galleryImages', image.id));
-        })
-      );
+      await Promise.all(categoryImages.map(image => deleteGalleryImage(image)));
 
-      // Delete the category document
-      await deleteDoc(doc(db, 'galleryCategories', category.id));
-      
+      // Delete the category
+      await deleteGalleryCategory(category.id);
       await fetchData();
     } catch (err) {
       console.error('Error deleting category:', err);
@@ -99,11 +72,18 @@ function GalleryPage() {
   // Add new image
   const handleAddImage = async (categoryId: string, url: string, fileName: string) => {
     try {
-      await addDoc(collection(db, 'galleryImages'), {
+      const newImage: GalleryImage = {
+        id: '', // This will be set by Firestore
         url,
         fileName,
         categoryId,
-        createdAt: Date.now(),
+        createdAt: Date.now()
+      };
+      const docRef = await addDoc(collection(db, 'galleryImages'), {
+        url,
+        fileName,
+        categoryId,
+        createdAt: Date.now()
       });
       await fetchData();
     } catch (err) {
@@ -115,13 +95,7 @@ function GalleryPage() {
   // Delete image
   const handleDeleteImage = async (image: GalleryImage) => {
     try {
-      // Delete from Storage
-      const imageRef = ref(storage, `gallery/${image.categoryId}/${image.fileName}`);
-      await deleteObject(imageRef);
-
-      // Delete from Firestore
-      await deleteDoc(doc(db, 'galleryImages', image.id));
-      
+      await deleteGalleryImage(image);
       await fetchData();
     } catch (err) {
       console.error('Error deleting image:', err);

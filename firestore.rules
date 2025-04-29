@@ -23,6 +23,16 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    match /galleryCategories/{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /galleryImages/{document=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
     // Private collections - only auth users can read and write
     match /bookings/{document=**} {
       allow read, write: if isAuthenticated();

@@ -1,63 +1,94 @@
-import { storage } from '../firebase/client';
-import { ref, uploadBytes, getDownloadURL, deleteObject, listAll, StorageReference } from 'firebase/storage';
+import { collection, addDoc, deleteDoc, doc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '@/firebase/client';
 
-export interface StorageImage {
+export interface GalleryCategory {
   id: string;
   name: string;
-  url: string;
-  ref: StorageReference;
-  folder: string;
+  slug: string;
+  createdAt: Date;
 }
 
-export const STORAGE_FOLDERS = {
-  HERO: 'hero',
-  ABOUT: 'about',
-  EVENTS: 'events',
-  GALLERY: 'gallery',
-  INTERIOR: 'interior',
-} as const;
+export interface GalleryImage {
+  id: string;
+  url: string;
+  fileName: string;
+  categoryId: string;
+  createdAt: number;
+}
 
-export async function uploadImage(file: File, folder: string, customFileName?: string): Promise<StorageImage> {
-  const fileName = customFileName || `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-  const storageRef = ref(storage, `${folder}/${fileName}`);
+// Category Management
+export async function getGalleryCategories(): Promise<GalleryCategory[]> {
+  const q = query(collection(db, 'galleryCategories'), orderBy('name'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as GalleryCategory));
+}
 
+export async function addGalleryCategory(name: string): Promise<string> {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const docRef = await addDoc(collection(db, 'galleryCategories'), {
+    name,
+    slug,
+    createdAt: serverTimestamp()
+  });
+  return docRef.id;
+}
+
+export async function deleteGalleryCategory(categoryId: string): Promise<void> {
+  await deleteDoc(doc(db, 'galleryCategories', categoryId));
+}
+
+// Image Management
+export async function getGalleryImages(): Promise<GalleryImage[]> {
+  const q = query(collection(db, 'galleryImages'), orderBy('createdAt', 'desc'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as GalleryImage));
+}
+
+export async function addGalleryImage(categoryId: string, file: File): Promise<GalleryImage> {
+  // Upload image to Storage
+  const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+  const storageRef = ref(storage, `gallery/${categoryId}/${fileName}`);
   await uploadBytes(storageRef, file);
   const url = await getDownloadURL(storageRef);
 
-  return {
-    id: storageRef.fullPath,
-    name: fileName,
+  // Add image metadata to Firestore
+  const docRef = await addDoc(collection(db, 'galleryImages'), {
     url,
-    ref: storageRef,
-    folder,
+    fileName,
+    categoryId,
+    createdAt: Date.now()
+  });
+
+  return {
+    id: docRef.id,
+    url,
+    fileName,
+    categoryId,
+    createdAt: Date.now()
   };
 }
 
-export async function deleteImage(imageRef: StorageReference): Promise<void> {
-  await deleteObject(imageRef);
+export async function deleteGalleryImage(image: GalleryImage): Promise<void> {
+  // Delete from Storage
+  const storageRef = ref(storage, `gallery/${image.categoryId}/${image.fileName}`);
+  await deleteObject(storageRef);
+
+  // Delete from Firestore
+  await deleteDoc(doc(db, 'galleryImages', image.id));
 }
 
-export async function listImages(folder: string): Promise<StorageImage[]> {
-  const folderRef = ref(storage, folder);
-  const result = await listAll(folderRef);
-  
-  const images = await Promise.all(
-    result.items.map(async (item) => {
-      const url = await getDownloadURL(item);
-      return {
-        id: item.fullPath,
-        name: item.name,
-        url,
-        ref: item,
-        folder,
-      };
-    })
-  );
-
-  return images;
-}
-
-export async function getImageUrl(path: string): Promise<string> {
-  const imageRef = ref(storage, path);
-  return await getDownloadURL(imageRef);
+// Helper function to ensure at least one category exists
+export async function ensureDefaultCategory(): Promise<void> {
+  const categories = await getGalleryCategories();
+  if (categories.length === 0) {
+    await addGalleryCategory('General');
+    console.log('Created default "General" category');
+  }
 } 

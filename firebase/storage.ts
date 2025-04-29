@@ -24,7 +24,7 @@ export const STORAGE_FOLDERS = {
   ABOUT: 'about',
   EVENTS: 'events',
   GALLERY: 'gallery',
-  MENU: 'menu',
+  MENU_ITEMS: 'menuItems',
   INTERIOR: 'interior',
 } as const;
 

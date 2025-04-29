@@ -16,15 +16,15 @@ export interface MenuItem extends FirestoreDocument {
 }
 
 export async function getMenuItem(id: string): Promise<MenuItem | null> {
-  return getDocument<MenuItem>('menu', id);
+  return getDocument<MenuItem>('menuItems', id);
 }
 
 export async function getAllMenuItems(): Promise<MenuItem[]> {
-  return getDocuments<MenuItem>('menu');
+  return getDocuments<MenuItem>('menuItems');
 }
 
 export async function getMenuItemsByCategory(category: string): Promise<MenuItem[]> {
-  return getDocuments<MenuItem>('menu', {
+  return getDocuments<MenuItem>('menuItems', {
     field: 'category',
     operator: '==',
     value: category
@@ -32,7 +32,7 @@ export async function getMenuItemsByCategory(category: string): Promise<MenuItem
 }
 
 export async function getAvailableMenuItems(): Promise<MenuItem[]> {
-  return getDocuments<MenuItem>('menu', {
+  return getDocuments<MenuItem>('menuItems', {
     field: 'available',
     operator: '==',
     value: true

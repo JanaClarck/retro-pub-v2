@@ -7,8 +7,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // ✅ Публичный доступ на чтение для всех
-    match /menu/{document=**} {
+    match /menuItems/{document=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
@@ -28,7 +27,6 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
-    // 🔐 Приватные — только для авторизованных
     match /bookings/{document=**} {
       allow read, write: if isAuthenticated();
     }
@@ -37,7 +35,6 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
-    // 🚫 По умолчанию — отказ
     match /{document=**} {
       allow read, write: if false;
     }

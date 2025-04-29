@@ -1,4 +1,4 @@
-import { Event } from './EventForm';
+import { Event } from '@/services/events';
 import { Button, Card } from '@/components/ui';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { EventListSkeleton } from '@/components/ui/Skeleton';
@@ -36,7 +36,7 @@ export function EventList({ events, onEdit, onDelete, isLoading }: EventListProp
         <Card key={event.id} className="overflow-hidden">
           <div className="relative aspect-video">
             <OptimizedImage
-              src={event.imageUrl}
+              src={event.imageUrl || ''}
               alt={event.title}
               className="w-full h-full"
             />
@@ -51,7 +51,7 @@ export function EventList({ events, onEdit, onDelete, isLoading }: EventListProp
               </p>
             </div>
             <p className="text-sm text-gray-700 line-clamp-2">
-              {event.shortDescription}
+              {event.description}
             </p>
             <div className="flex justify-end gap-2">
               <Button

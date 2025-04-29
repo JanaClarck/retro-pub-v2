@@ -2,81 +2,104 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, getAuth } from "firebase/auth";
-import firebaseApp from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/firebase/client";
+import { Card, Input, Button } from "@/components/ui";
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const auth = getAuth(firebaseApp);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
 
-  // Placeholder: Add protected route logic here (e.g., check if user is already authenticated)
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setError(null);
+  };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
+    setIsLoading(true);
+    setError(null);
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/admin");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Login failed. Please try again.");
+      // Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+
+      // Check if user has admin role
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+      const userData = userDoc.data();
+
+      if (userData?.role !== "admin") {
+        // Not an admin, sign out and show error
+        await auth.signOut();
+        setError("You do not have permission to access the admin area.");
+        return;
       }
+
+      // Admin login successful, redirect to admin dashboard
+      router.push("/admin");
+    } catch (error) {
+      setError("Invalid email or password.");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
-        <h2 className="text-2xl font-bold mb-6 text-center">Admin Login</h2>
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
+      <div className="w-full max-w-md px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Login</h1>
+          <p className="mt-2 text-gray-600">Sign in to access the admin dashboard</p>
+        </div>
+
+        <Card>
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <Input
               type="email"
+              name="email"
+              label="Email"
+              value={formData.email}
+              onChange={handleChange}
+              required
               autoComplete="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              id="password"
+
+            <Input
               type="password"
-              autoComplete="current-password"
+              name="password"
+              label="Password"
+              value={formData.password}
+              onChange={handleChange}
               required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              autoComplete="current-password"
             />
-          </div>
-          {error && (
-            <div className="text-red-600 text-sm text-center">{error}</div>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 disabled:opacity-50"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+
+            {error && (
+              <div className="text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              isLoading={isLoading}
+            >
+              Sign In
+            </Button>
+          </form>
+        </Card>
       </div>
     </div>
   );

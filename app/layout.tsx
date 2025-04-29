@@ -7,9 +7,30 @@ import Footer from "./components/Footer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Retro Pub - Classic Drinks & Entertainment",
-  description: "Experience the best of classic pub culture with our selection of drinks, live music, comedy shows, and more.",
-  keywords: "pub, bar, drinks, live music, comedy, entertainment, London",
+  title: {
+    default: 'Retro Pub - Traditional British Pub Experience',
+    template: '%s | Retro Pub'
+  },
+  description: "Experience the charm of a traditional British pub with our carefully curated selection of beers, classic pub food, and regular live events.",
+  keywords: ["pub", "british pub", "beer", "events", "live music", "traditional food"],
+  authors: [{ name: 'Retro Pub' }],
+  openGraph: {
+    title: 'Retro Pub - Traditional British Pub Experience',
+    description: 'Experience the charm of a traditional British pub with our carefully curated selection of beers, classic pub food, and regular live events.',
+    url: 'https://retropub.com',
+    siteName: 'Retro Pub',
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Retro Pub - Traditional British Pub Experience',
+    description: 'Experience the charm of a traditional British pub with our carefully curated selection of beers, classic pub food, and regular live events.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

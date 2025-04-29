@@ -1,322 +1,162 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import Image from "next/image";
-import {
-  ref,
-  uploadBytesResumable,
-  getDownloadURL,
-  deleteObject,
-  listAll,
-  StorageReference,
-} from "firebase/storage";
-import { storage } from "@/lib/firebase";
-import { useAdminAuth } from "../useAdminAuth";
+import { useState, useEffect } from 'react';
+import { collection, addDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
+import { ref, deleteObject, listAll } from 'firebase/storage';
+import { db, storage } from '@/firebase/client';
+import { AdminLayout } from '@/components/layout/AdminLayout';
+import { withAdminAuth } from '@/components/auth/withAdminAuth';
+import { GalleryAdminView, GalleryImage } from '@/components/admin/gallery/GalleryAdminView';
+import { GalleryCategory } from '@/components/admin/gallery/GalleryCategorySelector';
 
-interface StorageImage {
-  name: string;
-  url: string;
-  ref: StorageReference;
-  folder: string;
-}
+function GalleryPage() {
+  const [categories, setCategories] = useState<GalleryCategory[]>([]);
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-const FOLDERS = [
-  { id: "hero", name: "Hero Images" },
-  { id: "about", name: "About Section" },
-  { id: "menu", name: "Menu Items" },
-  { id: "events", name: "Events" },
-  { id: "gallery", name: "Gallery" },
-];
-
-export default function AdminGalleryPage() {
-  const user = useAdminAuth();
-  const [images, setImages] = useState<StorageImage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedFolder, setSelectedFolder] = useState(FOLDERS[0].id);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [deleteImage, setDeleteImage] = useState<StorageImage | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const fetchImages = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    setError("");
-    
+  // Fetch categories and images
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const allImages: StorageImage[] = [];
-      
-      for (const folder of FOLDERS) {
-        const folderRef = ref(storage, folder.id);
-        
-        try {
-          const result = await listAll(folderRef);
-          console.log(`Found ${result.items.length} items in ${folder.id}`);
-          
-          for (const item of result.items) {
-            try {
-              const url = await getDownloadURL(item);
-              allImages.push({
-                name: item.name,
-                url,
-                ref: item,
-                folder: folder.id,
-              });
-            } catch (err) {
-              console.error(`Error getting URL for ${item.fullPath}:`, err);
-            }
-          }
-        } catch (err) {
-          console.error(`Error listing ${folder.id}:`, err);
-        }
-      }
-      
-      setImages(allImages);
+      // Fetch categories
+      const categoriesSnapshot = await getDocs(
+        query(collection(db, 'galleryCategories'), orderBy('name'))
+      );
+      const fetchedCategories: GalleryCategory[] = [];
+      categoriesSnapshot.forEach((doc) => {
+        fetchedCategories.push({ id: doc.id, ...doc.data() } as GalleryCategory);
+      });
+      setCategories(fetchedCategories);
+
+      // Fetch images
+      const imagesSnapshot = await getDocs(
+        query(collection(db, 'galleryImages'), orderBy('createdAt', 'desc'))
+      );
+      const fetchedImages: GalleryImage[] = [];
+      imagesSnapshot.forEach((doc) => {
+        fetchedImages.push({ id: doc.id, ...doc.data() } as GalleryImage);
+      });
+      setImages(fetchedImages);
     } catch (err) {
-      console.error('Error fetching images:', err);
-      setError("Failed to load images. Please try again.");
+      console.error('Error fetching gallery data:', err);
+      setError('Failed to load gallery data');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user) {
-      fetchImages();
-    }
-  }, [user]);
+    fetchData();
+  }, []);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
-    setUploading(true);
-    setUploadProgress(0);
-    setError("");
-    setSuccess("");
-
+  // Add new category
+  const handleAddCategory = async (name: string) => {
     try {
-      if (!file.type.startsWith('image/')) {
-        throw new Error('Please select an image file');
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error('File size must be less than 5MB');
-      }
-
-      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const storageRef = ref(storage, `${selectedFolder}/${fileName}`);
-
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      await new Promise((resolve, reject) => {
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgress(Math.round(progress));
-          },
-          reject,
-          () => resolve(uploadTask)
-        );
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      await addDoc(collection(db, 'galleryCategories'), {
+        name,
+        slug,
       });
-
-      setSuccess("Image uploaded successfully!");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      
-      await fetchImages();
+      await fetchData();
     } catch (err) {
-      console.error('Upload error:', err);
-      setError(err instanceof Error ? err.message : "Failed to upload image. Please try again.");
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
+      console.error('Error adding category:', err);
+      throw new Error('Failed to add category');
     }
   };
 
-  const handleDelete = async (image: StorageImage) => {
-    if (!user) return;
-
-    setError("");
-    setSuccess("");
-
+  // Delete category and all its images
+  const handleDeleteCategory = async (category: GalleryCategory) => {
     try {
-      await deleteObject(image.ref);
-      setSuccess("Image deleted successfully!");
-      await fetchImages();
-      setDeleteImage(null);
+      // Delete all images in the category from Storage
+      const storageRef = ref(storage, `gallery/${category.id}`);
+      const storageItems = await listAll(storageRef);
+      await Promise.all(
+        storageItems.items.map(async (imageRef) => {
+          await deleteObject(imageRef);
+        })
+      );
+
+      // Delete all image documents in this category
+      const categoryImages = images.filter(img => img.categoryId === category.id);
+      await Promise.all(
+        categoryImages.map(async (image) => {
+          await deleteDoc(doc(db, 'galleryImages', image.id));
+        })
+      );
+
+      // Delete the category document
+      await deleteDoc(doc(db, 'galleryCategories', category.id));
+      
+      await fetchData();
     } catch (err) {
-      console.error('Delete error:', err);
-      setError("Failed to delete image. Please try again.");
+      console.error('Error deleting category:', err);
+      throw new Error('Failed to delete category');
     }
   };
 
-  if (user === undefined) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-lg font-semibold">Loading...</div>
-      </div>
-    );
-  }
-
-  if (user === null) {
-    return null;
-  }
-
-  const imagesByFolder = images.reduce((acc, image) => {
-    if (!acc[image.folder]) {
-      acc[image.folder] = [];
+  // Add new image
+  const handleAddImage = async (categoryId: string, url: string, fileName: string) => {
+    try {
+      await addDoc(collection(db, 'galleryImages'), {
+        url,
+        fileName,
+        categoryId,
+        createdAt: Date.now(),
+      });
+      await fetchData();
+    } catch (err) {
+      console.error('Error adding image:', err);
+      throw new Error('Failed to add image');
     }
-    acc[image.folder].push(image);
-    return acc;
-  }, {} as Record<string, StorageImage[]>);
+  };
+
+  // Delete image
+  const handleDeleteImage = async (image: GalleryImage) => {
+    try {
+      // Delete from Storage
+      const imageRef = ref(storage, `gallery/${image.categoryId}/${image.fileName}`);
+      await deleteObject(imageRef);
+
+      // Delete from Firestore
+      await deleteDoc(doc(db, 'galleryImages', image.id));
+      
+      await fetchData();
+    } catch (err) {
+      console.error('Error deleting image:', err);
+      throw new Error('Failed to delete image');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h1 className="text-2xl font-bold mb-6">Manage Gallery</h1>
-
-          {/* Upload Section */}
-          <div className="mb-8 p-6 bg-gray-50 rounded-lg">
-            <h2 className="text-lg font-semibold mb-4">Upload New Image</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Select Folder
-                </label>
-                <select
-                  value={selectedFolder}
-                  onChange={(e) => setSelectedFolder(e.target.value)}
-                  disabled={uploading}
-                  className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                >
-                  {FOLDERS.map((folder) => (
-                    <option key={folder.id} value={folder.id} className="py-1">
-                      {folder.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Choose Image
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  ref={fileInputRef}
-                  disabled={uploading}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
-                />
-              </div>
-            </div>
-
-            {/* Upload Progress */}
-            {uploading && (
-              <div className="mt-4">
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-amber-500 transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  Uploading: {uploadProgress}%
-                </p>
-              </div>
-            )}
-
-            {/* Messages */}
-            {error && (
-              <div className="mt-4 text-sm text-red-600 bg-red-50 rounded-md p-3">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="mt-4 text-sm text-green-600 bg-green-50 rounded-md p-3">
-                {success}
-              </div>
-            )}
-          </div>
-
-          {/* Loading State */}
-          {loading && (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
-            </div>
-          )}
-
-          {/* Gallery Sections */}
-          {!loading && FOLDERS.map((folder) => (
-            <div key={folder.id} className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">{folder.name}</h2>
-              {!imagesByFolder[folder.id] || imagesByFolder[folder.id].length === 0 ? (
-                <p className="text-gray-500 italic">No images in this folder</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {imagesByFolder[folder.id].map((image) => (
-                    <div
-                      key={image.ref.fullPath}
-                      className="relative bg-white rounded-lg shadow overflow-hidden group"
-                    >
-                      <div className="aspect-square relative">
-                        <Image
-                          src={image.url}
-                          alt={image.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <p className="text-sm text-gray-600 truncate">{image.name}</p>
-                        <button
-                          onClick={() => setDeleteImage(image)}
-                          className="mt-2 text-sm text-red-600 hover:text-red-700"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+    <AdminLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gallery Management</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Manage your gallery categories and images.
+          </p>
         </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-md">
+            {error}
+          </div>
+        )}
+
+        <GalleryAdminView
+          categories={categories}
+          images={images}
+          onAddCategory={handleAddCategory}
+          onDeleteCategory={handleDeleteCategory}
+          onAddImage={handleAddImage}
+          onDeleteImage={handleDeleteImage}
+          isLoading={isLoading}
+        />
       </div>
-
-      {/* Delete Confirmation Modal */}
-      {deleteImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Confirm Delete</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this image? This action cannot be undone.
-            </p>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setDeleteImage(null)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-700"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => deleteImage && handleDelete(deleteImage)}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </AdminLayout>
   );
-} 
+}
+
+export default withAdminAuth(GalleryPage); 

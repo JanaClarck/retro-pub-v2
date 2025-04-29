@@ -15,11 +15,6 @@ interface Event {
   image: string;
 }
 
-export const metadata = {
-  title: 'Events - Retro Pub',
-  description: 'Check out our upcoming events and live performances.',
-};
-
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);

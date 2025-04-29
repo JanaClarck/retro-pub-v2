@@ -11,11 +11,6 @@ interface GalleryImage {
   category: string;
 }
 
-export const metadata = {
-  title: 'Gallery - Retro Pub',
-  description: 'Take a visual tour of our pub, events, and memorable moments.',
-};
-
 export default function GalleryPage() {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);

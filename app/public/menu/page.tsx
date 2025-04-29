@@ -14,11 +14,6 @@ interface MenuItem extends FirestoreDocument {
   isAvailable: boolean;
 }
 
-export const metadata = {
-  title: 'Menu - Retro Pub',
-  description: 'Explore our delicious food and drink offerings.',
-};
-
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);

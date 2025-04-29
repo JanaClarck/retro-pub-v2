@@ -9,38 +9,70 @@ interface AuthContextType {
   user: User | null;
   role: string | null;
   isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   role: null,
   isLoading: true,
+  isAuthenticated: false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      setUser(firebaseUser);
-      
-      if (firebaseUser) {
-        const userRole = await getUserRole(firebaseUser.uid);
-        setRole(userRole);
-      } else {
-        setRole(null);
+      if (!mounted) return;
+
+      try {
+        if (firebaseUser) {
+          setUser(firebaseUser);
+          const userRole = await getUserRole(firebaseUser.uid);
+          if (mounted) {
+            setRole(userRole);
+            setIsAuthenticated(true);
+          }
+        } else {
+          setUser(null);
+          setRole(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Error in auth state change:', error);
+        if (mounted) {
+          setUser(null);
+          setRole(null);
+          setIsAuthenticated(false);
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
-      
-      setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
 
+  const value = {
+    user,
+    role,
+    isLoading,
+    isAuthenticated,
+  };
+
   return (
-    <AuthContext.Provider value={{ user, role, isLoading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

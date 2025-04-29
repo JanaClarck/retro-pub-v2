@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { withAdminAuth } from '@/components/auth/withAdminAuth';
+import { AuthStateWrapper } from '@/components/auth/AuthStateWrapper';
 import { GalleryAdminView, GalleryImage } from '@/components/admin/gallery/GalleryAdminView';
 import { GalleryCategory } from '@/components/admin/gallery/GalleryCategorySelector';
 import { getGalleryCategories, getGalleryImages, addGalleryCategory, deleteGalleryCategory, addGalleryImage, deleteGalleryImage, ensureDefaultCategory } from '@/services/gallery';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/firebase/client';
+import { useAuth } from '@/context/AuthContext';
 
 function GalleryPage() {
+  const { isAuthenticated } = useAuth();
   const [categories, setCategories] = useState<GalleryCategory[]>([]);
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,6 +19,8 @@ function GalleryPage() {
 
   // Fetch categories and images
   const fetchData = async () => {
+    if (!isAuthenticated) return;
+    
     setIsLoading(true);
     setError(null);
     try {
@@ -39,11 +43,14 @@ function GalleryPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (isAuthenticated) {
+      fetchData();
+    }
+  }, [isAuthenticated]);
 
   // Add new category
   const handleAddCategory = async (name: string) => {
+    if (!isAuthenticated) return;
     try {
       await addGalleryCategory(name);
       await fetchData();
@@ -55,6 +62,7 @@ function GalleryPage() {
 
   // Delete category and all its images
   const handleDeleteCategory = async (category: GalleryCategory) => {
+    if (!isAuthenticated) return;
     try {
       // Delete all images in this category
       const categoryImages = images.filter(img => img.categoryId === category.id);
@@ -71,6 +79,7 @@ function GalleryPage() {
 
   // Add new image
   const handleAddImage = async (categoryId: string, url: string, fileName: string) => {
+    if (!isAuthenticated) return;
     try {
       const newImage: GalleryImage = {
         id: '', // This will be set by Firestore
@@ -94,6 +103,7 @@ function GalleryPage() {
 
   // Delete image
   const handleDeleteImage = async (image: GalleryImage) => {
+    if (!isAuthenticated) return;
     try {
       await deleteGalleryImage(image);
       await fetchData();
@@ -104,33 +114,35 @@ function GalleryPage() {
   };
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gallery Management</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Manage your gallery categories and images.
-          </p>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-md">
-            {error}
+    <AuthStateWrapper requireAuth requireAdmin>
+      <AdminLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gallery Management</h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Manage your gallery categories and images.
+            </p>
           </div>
-        )}
 
-        <GalleryAdminView
-          categories={categories}
-          images={images}
-          onAddCategory={handleAddCategory}
-          onDeleteCategory={handleDeleteCategory}
-          onAddImage={handleAddImage}
-          onDeleteImage={handleDeleteImage}
-          isLoading={isLoading}
-        />
-      </div>
-    </AdminLayout>
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-md">
+              {error}
+            </div>
+          )}
+
+          <GalleryAdminView
+            categories={categories}
+            images={images}
+            onAddCategory={handleAddCategory}
+            onDeleteCategory={handleDeleteCategory}
+            onAddImage={handleAddImage}
+            onDeleteImage={handleDeleteImage}
+            isLoading={isLoading}
+          />
+        </div>
+      </AdminLayout>
+    </AuthStateWrapper>
   );
 }
 
-export default withAdminAuth(GalleryPage); 
+export default GalleryPage; 

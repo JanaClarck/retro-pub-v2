@@ -2,12 +2,12 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
+    // Helper function to check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Public collections - anyone can read, auth users can write
+    // Public collections - allow read access to everyone, write access to authenticated users
     match /menu/{document=**} {
       allow read: if true;
       allow write: if isAuthenticated();
@@ -18,22 +18,17 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
-    match /events/{document=**} {
-      allow read: if true;
-      allow write: if isAuthenticated();
-    }
-
     match /galleryCategories/{document=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /galleryImages/{document=**} {
+    match /events/{document=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    // Private collections - only auth users can read and write
+    // Protected collections - require authentication for all operations
     match /bookings/{document=**} {
       allow read, write: if isAuthenticated();
     }
@@ -42,7 +37,7 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
-    // Default - deny all other access
+    // Deny access to all other collections by default
     match /{document=**} {
       allow read, write: if false;
     }

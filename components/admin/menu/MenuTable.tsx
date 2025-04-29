@@ -1,18 +1,19 @@
 import { Button } from '@/components/ui';
-import { MenuItem } from './MenuItemForm';
+import { MenuItem } from '@/services/menu';
 
 interface MenuTableProps {
   items: MenuItem[];
   onEdit: (item: MenuItem) => void;
   onDelete: (item: MenuItem) => void;
   isDeleting?: string | null;
+  disabled?: boolean;
 }
 
-export function MenuTable({ items, onEdit, onDelete, isDeleting }: MenuTableProps) {
+export function MenuTable({ items, onEdit, onDelete, isDeleting, disabled }: MenuTableProps) {
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
     }).format(price);
   };
 
@@ -36,6 +37,9 @@ export function MenuTable({ items, onEdit, onDelete, isDeleting }: MenuTableProp
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Price
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Status
             </th>
             <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               Actions
@@ -61,12 +65,22 @@ export function MenuTable({ items, onEdit, onDelete, isDeleting }: MenuTableProp
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-gray-900">{formatPrice(item.price)}</div>
               </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                  item.isAvailable 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'
+                }`}>
+                  {item.isAvailable ? 'Available' : 'Unavailable'}
+                </span>
+              </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div className="flex justify-end space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => onEdit(item)}
+                    disabled={disabled}
                   >
                     Edit
                   </Button>
@@ -75,6 +89,7 @@ export function MenuTable({ items, onEdit, onDelete, isDeleting }: MenuTableProp
                     size="sm"
                     onClick={() => onDelete(item)}
                     isLoading={isDeleting === item.id}
+                    disabled={disabled}
                   >
                     Delete
                   </Button>
@@ -84,7 +99,7 @@ export function MenuTable({ items, onEdit, onDelete, isDeleting }: MenuTableProp
           ))}
           {items.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+              <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
                 No menu items found
               </td>
             </tr>

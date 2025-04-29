@@ -2,37 +2,49 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     match /menuItems/{document=**} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     match /gallery/{document=**} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     match /galleryCategories/{document=**} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /galleryImages/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /events/{document=**} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     match /bookings/{document=**} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
-    match /users/{document=**} {
-      allow read, write: if isAuthenticated();
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
     }
 
     match /{document=**} {

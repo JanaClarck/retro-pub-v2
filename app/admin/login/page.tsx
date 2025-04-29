@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/firebase/client";
+import { auth } from "@/firebase/client";
+import { createUserDocument } from "@/services/user";
 import { Card, Input, Button } from "@/components/ui";
 
 export default function AdminLoginPage() {
@@ -29,26 +29,19 @@ export default function AdminLoginPage() {
 
     try {
       // Sign in with Firebase Auth
-      const userCredential = await signInWithEmailAndPassword(
+      const { user } = await signInWithEmailAndPassword(
         auth,
         formData.email,
         formData.password
       );
 
-      // Check if user has admin role
-      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
-      const userData = userDoc.data();
+      // Create or update user document in Firestore
+      await createUserDocument(user.uid, user.email!);
 
-      if (userData?.role !== "admin") {
-        // Not an admin, sign out and show error
-        await auth.signOut();
-        setError("You do not have permission to access the admin area.");
-        return;
-      }
-
-      // Admin login successful, redirect to admin dashboard
+      // Redirect to admin dashboard
       router.push("/admin");
     } catch (error) {
+      console.error("Login error:", error);
       setError("Invalid email or password.");
     } finally {
       setIsLoading(false);

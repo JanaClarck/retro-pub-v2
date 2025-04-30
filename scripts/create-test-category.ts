@@ -1,5 +1,5 @@
 import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../firebase/client';
+import { db } from '../firebase-config/client';
 
 async function createTestCategory() {
   try {

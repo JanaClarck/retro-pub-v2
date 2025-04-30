@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth } from '../../firebase/client';
-import { db } from '../../firebase/client';
+import { auth } from '@/firebase-config/client';
+import { db } from '@/firebase-config/client';
 
 export function useAdminAuth() {
   const [user, setUser] = useState<User | null | undefined>(undefined);

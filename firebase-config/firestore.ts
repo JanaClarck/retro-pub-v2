@@ -1,3 +1,9 @@
+import type {
+  DocumentData,
+  QueryConstraint,
+  DocumentReference,
+  CollectionReference
+} from 'firebase/firestore';
 import {
   doc,
   getDoc,
@@ -10,13 +16,12 @@ import {
   where,
   orderBy,
   limit,
-  QueryConstraint,
   Timestamp
 } from 'firebase/firestore';
 import { db } from './client';
 
 // Generic type for Firestore documents
-export interface FirestoreDocument {
+export interface FirestoreDocument extends DocumentData {
   id: string;
   createdAt: Date;
   updatedAt: Date;
@@ -43,9 +48,9 @@ export async function getDocument<T extends FirestoreDocument>(
 
 export async function getDocuments<T extends FirestoreDocument>(
   collectionName: string,
-  constraints: QueryConstraint[] = []
+  queryConstraints: QueryConstraint[] = []
 ): Promise<T[]> {
-  const q = query(collection(db, collectionName), ...constraints);
+  const q = query(collection(db, collectionName), ...queryConstraints);
   const querySnapshot = await getDocs(q);
   
   return querySnapshot.docs.map(doc => ({
@@ -100,19 +105,13 @@ export async function deleteDocument(
   await deleteDoc(docRef);
 }
 
-// Query helper functions
-export function whereEqual(field: string, value: any): QueryConstraint {
-  return where(field, "==", value);
-}
+// Export types
+export type {
+  DocumentData,
+  QueryConstraint,
+  DocumentReference,
+  CollectionReference
+};
 
-export function orderByDesc(field: string): QueryConstraint {
-  return orderBy(field, "desc");
-}
-
-export function orderByAsc(field: string): QueryConstraint {
-  return orderBy(field, "asc");
-}
-
-export function limitTo(n: number): QueryConstraint {
-  return limit(n);
-} 
+// Export Timestamp for date handling
+export { Timestamp }; 

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from '@/firebase/client';
+import { storage } from '@/firebase-config/client';
 import { Button } from '@/components/ui';
 
 interface ImageUploaderProps {

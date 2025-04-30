@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, limit, getDocs, Timestamp } from '@firebase/firestore';
-import { db } from '@/firebase/client';
+import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/firebase-config/client';
 import { EventCard } from './EventCard';
 import { LoadingSpinner } from '@/components/ui';
-import { FirestoreDocument } from '@/firebase/firestore';
+import { FirestoreDocument } from '@/firebase-config/firestore';
 import { COLLECTIONS } from '@/constants/collections';
 
 interface FirestoreEvent extends FirestoreDocument {

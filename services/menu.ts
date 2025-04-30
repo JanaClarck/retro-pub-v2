@@ -1,5 +1,5 @@
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from '@firebase/firestore';
-import { db, auth } from '@/firebase/client';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
+import { db, auth } from '@/firebase-config/client';
 import { COLLECTIONS } from '@/constants/collections';
 
 export interface MenuItem {

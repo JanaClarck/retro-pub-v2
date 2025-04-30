@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, where, getDocs, doc, updateDoc } from '@firebase/firestore';
-import { db } from '@/firebase/client';
+import { collection, query, orderBy, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/firebase-config/client';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { withAdminAuth } from '@/components/auth/withAdminAuth';
 import { Card, Button, Input } from '@/components/ui';

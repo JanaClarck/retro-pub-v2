@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { auth } from '@/firebase/client';
+import { auth } from '@/firebase-config/client';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Button } from '@/components/ui';
 

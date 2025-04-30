@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/firebase/client";
+import { auth } from "@/firebase-config/client";
 import { createUserDocument } from "@/services/user";
 import { Card, Input, Button } from "@/components/ui";
 

@@ -1,5 +1,5 @@
-import { db } from '@/firebase/client';
-import { createDocument } from '@/firebase/firestore';
+import { db } from '@/firebase-config/client';
+import { createDocument } from '@/firebase-config/firestore';
 
 async function migrateHeroSection() {
   try {

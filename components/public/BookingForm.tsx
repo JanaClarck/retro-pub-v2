@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button, Input, Card } from '@/components/ui';
-import { createDocument } from '@/firebase/firestore';
+import { createDocument } from '@/firebase-config/firestore';
 
 export interface BookingFormProps {
   className?: string;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/firebase/client';
+import { auth, db } from '@/firebase-config/client';
 
 export interface AdminUser extends User {
   role: 'admin';

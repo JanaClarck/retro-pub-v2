@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { FirestoreDocument } from '@/firebase/firestore';
+import { FirestoreDocument } from '@/firebase-config/firestore';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { formatDate, formatTime } from '@/lib/utils/dateTime';
 import { getEventDocument } from '@/lib/firebase/events';

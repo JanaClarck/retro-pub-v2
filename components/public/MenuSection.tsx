@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs } from '@firebase/firestore';
-import { db } from '@/firebase/client';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '@/firebase-config/client';
 import { MenuItemCard } from './MenuItemCard';
 import { LoadingSpinner } from '@/components/ui';
 import { MenuItem } from '@/services/menu';

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '@/lib/auth/useAuth';
-import { auth } from '@/firebase/client';
+import { auth } from '@/firebase-config/client';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard' },

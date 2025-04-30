@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { z } from 'zod';
-import { getDocument, FirestoreDocument } from '@/firebase/firestore';
+import { getDocument, FirestoreDocument } from '@/firebase-config/firestore';
 import { LoadingSpinner } from '@/components/ui';
 
 // Zod schema for runtime validation

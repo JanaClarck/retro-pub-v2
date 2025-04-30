@@ -1,7 +1,7 @@
-import { collection, addDoc, deleteDoc, doc, getDocs, query, orderBy, serverTimestamp } from '@firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from '@firebase/storage';
-import { db, storage } from '@/firebase/client';
-import { auth } from '@/firebase/client';
+import { collection, addDoc, deleteDoc, doc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '@/firebase-config/client';
+import { auth } from '@/firebase-config/client';
 import { COLLECTIONS } from '@/constants/collections';
 
 export interface GalleryCategory {

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { db } from '@/firebase/client';
+import { db } from '@/firebase-config/client';
 import { LoadingSpinner } from '@/components/ui';
 import { z } from 'zod';
-import { getDocument, FirestoreDocument } from '@/firebase/firestore';
+import { getDocument, FirestoreDocument } from '@/firebase-config/firestore';
 
 // Zod schema for runtime validation
 const aboutSchema = z.object({

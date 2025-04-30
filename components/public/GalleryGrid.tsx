@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, getDocs } from '@firebase/firestore';
-import { db } from '@/firebase/client';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '@/firebase-config/client';
 import { Card, LoadingSpinner } from '@/components/ui';
 import Image from 'next/image';
 import { COLLECTIONS } from '@/constants/collections';

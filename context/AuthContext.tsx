@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
-import { auth } from '@/firebase/client';
+import { auth } from '@/firebase-config/client';
 import { getUserRole } from '@/services/user';
 
 interface AuthContextType {

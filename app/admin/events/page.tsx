@@ -10,9 +10,9 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-} from '@firebase/firestore';
-import { ref, deleteObject } from '@firebase/storage';
-import { db, storage } from '@/firebase/client';
+} from 'firebase/firestore';
+import { ref, deleteObject } from 'firebase/storage';
+import { db, storage } from '@/firebase-config/client';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { withAdminAuth } from '@/components/auth/withAdminAuth';
 import { Card, Button } from '@/components/ui';

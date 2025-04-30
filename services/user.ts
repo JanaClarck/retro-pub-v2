@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/firebase/client';
+import { db } from '@/firebase-config/client';
 
 export interface UserData {
   email: string;

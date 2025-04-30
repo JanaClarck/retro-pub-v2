@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui';
 import { Modal } from '@/components/ui';
-import { StorageFile } from '@/firebase/storage';
+import { StorageFile } from '@/firebase-config/storage';
 
 export interface GallerySectionProps {
   title?: string;

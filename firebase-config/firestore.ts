@@ -1,19 +1,18 @@
 import {
-  collection,
   doc,
-  getDocs,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
+  collection,
   query,
   where,
   orderBy,
   limit,
-  DocumentData,
   QueryConstraint,
   Timestamp
-} from '@firebase/firestore';
+} from 'firebase/firestore';
 import { db } from './client';
 
 // Generic type for Firestore documents
@@ -23,7 +22,7 @@ export interface FirestoreDocument {
   updatedAt: Date;
 }
 
-// Generic CRUD operations
+// Generic CRUD operations with proper date handling
 export async function getDocument<T extends FirestoreDocument>(
   collectionName: string,
   docId: string

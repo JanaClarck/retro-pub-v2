@@ -6,8 +6,8 @@ import { AuthStateWrapper } from '@/components/auth/AuthStateWrapper';
 import { GalleryAdminView, GalleryImage } from '@/components/admin/gallery/GalleryAdminView';
 import { GalleryCategory } from '@/components/admin/gallery/GalleryCategorySelector';
 import { getGalleryCategories, getGalleryImages, addGalleryCategory, deleteGalleryCategory, addGalleryImage, deleteGalleryImage, ensureDefaultCategory } from '@/services/gallery';
-import { addDoc, collection } from '@firebase/firestore';
-import { db } from '@/firebase/client';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '@/firebase-config/client';
 import { useAuth } from '@/context/AuthContext';
 import { COLLECTIONS } from '@/constants/collections';
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { collection, doc, getDoc } from '@firebase/firestore';
-import { db } from '@/firebase/client';
+import { collection, doc, getDoc } from 'firebase/firestore';
+import { db } from '@/firebase-config/client';
 import { safeParse } from '@/lib/validation/zodSchemas';
 import { sectionDescriptionSchema } from '@/lib/validation/zodSchemas';
 import { COLLECTIONS } from '@/constants/collections';

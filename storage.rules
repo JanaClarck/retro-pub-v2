@@ -11,7 +11,23 @@ service firebase.storage {
       return request.resource.contentType.matches('image/.*');
     }
 
-    // Allow read access to all images
+    // Public folders - read only
+    match /hero/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage();
+    }
+
+    match /about/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage();
+    }
+
+    match /interior/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage();
+    }
+
+    // Collection-based folders
     match /images/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated() && isImage();

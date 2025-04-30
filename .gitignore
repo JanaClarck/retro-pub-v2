@@ -38,6 +38,7 @@ next-env.d.ts
 *.log
 firebase-debug.log*
 firebase-debug.*.log*
+service-account-key.json
 
 # IDE
 .idea/

@@ -1,5 +1,6 @@
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from '@firebase/firestore';
 import { db, auth } from '@/firebase/client';
+import { COLLECTIONS } from '@/constants/collections';
 
 export interface Event {
   id: string;
@@ -25,17 +26,17 @@ function checkAuth() {
 
 export async function getEvents(): Promise<Event[]> {
   checkAuth();
-  const q = query(collection(db, 'events'), orderBy('date', 'desc'));
+  const q = query(collection(db, COLLECTIONS.EVENTS), orderBy('date', 'desc'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
   } as Event));
 }
 
 export async function addEvent(data: Omit<Event, 'id'>): Promise<string> {
   checkAuth();
-  const docRef = await addDoc(collection(db, 'events'), {
+  const docRef = await addDoc(collection(db, COLLECTIONS.EVENTS), {
     ...data,
     createdAt: Date.now(),
     isActive: true
@@ -45,12 +46,12 @@ export async function addEvent(data: Omit<Event, 'id'>): Promise<string> {
 
 export async function updateEvent(id: string, data: Partial<Event>): Promise<void> {
   checkAuth();
-  await updateDoc(doc(db, 'events', id), data);
+  await updateDoc(doc(db, COLLECTIONS.EVENTS, id), data);
 }
 
 export async function deleteEvent(id: string): Promise<void> {
   checkAuth();
-  await deleteDoc(doc(db, 'events', id));
+  await deleteDoc(doc(db, COLLECTIONS.EVENTS, id));
 }
 
 // Helper function to format date for input fields

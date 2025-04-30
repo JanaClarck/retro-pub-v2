@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection } from '@firebase/firestore';
 import { db } from '@/lib/firebase/firebase';
+import { COLLECTIONS } from '@/constants/collections';
 
 interface BookingFormData {
   name: string;
@@ -32,7 +33,7 @@ export default function BookingPage() {
     setLoading(true);
 
     try {
-      await addDoc(collection(db, 'bookings'), {
+      await addDoc(collection(db, COLLECTIONS.BOOKINGS), {
         ...formData,
         status: 'pending',
         createdAt: new Date(),

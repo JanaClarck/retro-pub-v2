@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, where, getDocs, doc, updateDoc } from '@firebase/firestore';
 import { db } from '@/firebase/client';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { withAdminAuth } from '@/components/auth/withAdminAuth';
 import { Card, Button, Input } from '@/components/ui';
 import { BookingTable, Booking } from '@/components/admin/booking/BookingTable';
 import { BookingStatus } from '@/components/admin/booking/BookingStatusControl';
+import { COLLECTIONS } from '@/constants/collections';
 
 function BookingPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -22,7 +23,7 @@ function BookingPage() {
     setError(null);
     try {
       let baseQuery = query(
-        collection(db, 'bookings'),
+        collection(db, COLLECTIONS.BOOKINGS),
         orderBy('date', 'desc'),
         orderBy('time', 'desc')
       );
@@ -30,7 +31,7 @@ function BookingPage() {
       // Apply status filter
       if (statusFilter !== 'all') {
         baseQuery = query(
-          collection(db, 'bookings'),
+          collection(db, COLLECTIONS.BOOKINGS),
           where('status', '==', statusFilter),
           orderBy('date', 'desc'),
           orderBy('time', 'desc')
@@ -65,7 +66,7 @@ function BookingPage() {
   const handleStatusChange = async (bookingId: string, newStatus: BookingStatus) => {
     setIsLoading(true);
     try {
-      await updateDoc(doc(db, 'bookings', bookingId), {
+      await updateDoc(doc(db, COLLECTIONS.BOOKINGS, bookingId), {
         status: newStatus,
         updatedAt: Date.now(),
       });

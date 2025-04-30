@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, Timestamp } from '@firebase/firestore';
 import { db } from '@/firebase/client';
 import { EventCard } from './EventCard';
 import { LoadingSpinner } from '@/components/ui';
 import { FirestoreDocument } from '@/firebase/firestore';
+import { COLLECTIONS } from '@/constants/collections';
 
 interface FirestoreEvent extends FirestoreDocument {
   title: string;
@@ -45,7 +46,7 @@ export function EventsPreview({ limit: limitCount = 3, showTitle = true, classNa
     const fetchEvents = async () => {
       try {
         const eventsQuery = query(
-          collection(db, 'events'),
+          collection(db, COLLECTIONS.EVENTS),
           where('isActive', '==', true),
           orderBy('date', 'desc'),
           orderBy('time', 'desc'),

@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs } from '@firebase/firestore';
 import { db } from '@/firebase/client';
 import { MenuItemCard } from './MenuItemCard';
 import { LoadingSpinner } from '@/components/ui';
 import { MenuItem } from '@/services/menu';
+import { COLLECTIONS } from '@/constants/collections';
 
 interface MenuSectionProps {
   showImages?: boolean;
@@ -21,7 +22,7 @@ export function MenuSection({ showImages = true, className = '' }: MenuSectionPr
     const fetchMenuItems = async () => {
       try {
         const menuQuery = query(
-          collection(db, 'menuItems'),
+          collection(db, COLLECTIONS.MENU),
           orderBy('category'),
           orderBy('name')
         );

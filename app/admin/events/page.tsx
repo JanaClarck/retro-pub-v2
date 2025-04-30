@@ -10,8 +10,8 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-} from 'firebase/firestore';
-import { ref, deleteObject } from 'firebase/storage';
+} from '@firebase/firestore';
+import { ref, deleteObject } from '@firebase/storage';
 import { db, storage } from '@/firebase/client';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { withAdminAuth } from '@/components/auth/withAdminAuth';
@@ -19,6 +19,7 @@ import { Card, Button } from '@/components/ui';
 import { EventForm } from '@/components/admin/events/EventForm';
 import { Event } from '@/services/events';
 import { EventList } from '@/components/admin/events/EventList';
+import { COLLECTIONS } from '@/constants/collections';
 
 function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -33,7 +34,7 @@ function EventsPage() {
     setError(null);
     try {
       const eventsQuery = query(
-        collection(db, 'events'),
+        collection(db, COLLECTIONS.EVENTS),
         orderBy('date', 'desc'),
         orderBy('time', 'desc')
       );
@@ -62,10 +63,10 @@ function EventsPage() {
     try {
       if (selectedEvent?.id) {
         // Update existing event
-        await updateDoc(doc(db, 'events', selectedEvent.id), eventData);
+        await updateDoc(doc(db, COLLECTIONS.EVENTS, selectedEvent.id), eventData);
       } else {
         // Create new event
-        await addDoc(collection(db, 'events'), {
+        await addDoc(collection(db, COLLECTIONS.EVENTS), {
           ...eventData,
           createdAt: Date.now()
         });
@@ -94,7 +95,7 @@ function EventsPage() {
         const imageRef = ref(storage, decodedPath);
         await deleteObject(imageRef);
       }
-      await deleteDoc(doc(db, 'events', eventId));
+      await deleteDoc(doc(db, COLLECTIONS.EVENTS, eventId));
       await fetchEvents();
     } catch (err) {
       console.error('Error deleting event:', err);

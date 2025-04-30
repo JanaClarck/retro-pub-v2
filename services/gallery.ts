@@ -1,7 +1,8 @@
-import { collection, addDoc, deleteDoc, doc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { collection, addDoc, deleteDoc, doc, getDocs, query, orderBy, serverTimestamp } from '@firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from '@firebase/storage';
 import { db, storage } from '@/firebase/client';
 import { auth } from '@/firebase/client';
+import { COLLECTIONS } from '@/constants/collections';
 
 export interface GalleryCategory {
   id: string;
@@ -28,18 +29,18 @@ function checkAuth() {
 // Category Management
 export async function getGalleryCategories(): Promise<GalleryCategory[]> {
   checkAuth();
-  const q = query(collection(db, 'galleryCategories'), orderBy('name'));
+  const q = query(collection(db, COLLECTIONS.GALLERY), orderBy('name'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
   } as GalleryCategory));
 }
 
 export async function addGalleryCategory(name: string): Promise<string> {
   checkAuth();
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const docRef = await addDoc(collection(db, 'galleryCategories'), {
+  const docRef = await addDoc(collection(db, COLLECTIONS.GALLERY), {
     name,
     slug,
     createdAt: serverTimestamp()
@@ -49,17 +50,17 @@ export async function addGalleryCategory(name: string): Promise<string> {
 
 export async function deleteGalleryCategory(categoryId: string): Promise<void> {
   checkAuth();
-  await deleteDoc(doc(db, 'galleryCategories', categoryId));
+  await deleteDoc(doc(db, COLLECTIONS.GALLERY, categoryId));
 }
 
 // Image Management
 export async function getGalleryImages(): Promise<GalleryImage[]> {
   checkAuth();
-  const q = query(collection(db, 'galleryImages'), orderBy('createdAt', 'desc'));
+  const q = query(collection(db, COLLECTIONS.GALLERY), orderBy('createdAt', 'desc'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
   } as GalleryImage));
 }
 
@@ -72,7 +73,7 @@ export async function addGalleryImage(categoryId: string, file: File): Promise<G
   const url = await getDownloadURL(storageRef);
 
   // Add image metadata to Firestore
-  const docRef = await addDoc(collection(db, 'galleryImages'), {
+  const docRef = await addDoc(collection(db, COLLECTIONS.GALLERY), {
     url,
     fileName,
     categoryId,
@@ -95,7 +96,7 @@ export async function deleteGalleryImage(image: GalleryImage): Promise<void> {
   await deleteObject(storageRef);
 
   // Delete from Firestore
-  await deleteDoc(doc(db, 'galleryImages', image.id));
+  await deleteDoc(doc(db, COLLECTIONS.GALLERY, image.id));
 }
 
 // Helper function to ensure at least one category exists

@@ -1,5 +1,6 @@
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from '@firebase/firestore';
 import { db, auth } from '@/firebase/client';
+import { COLLECTIONS } from '@/constants/collections';
 
 export interface MenuItem {
   id: string;
@@ -20,17 +21,17 @@ function checkAuth() {
 
 export async function getMenuItems(): Promise<MenuItem[]> {
   checkAuth();
-  const q = query(collection(db, 'menuItems'), orderBy('category'), orderBy('name'));
+  const q = query(collection(db, COLLECTIONS.MENU), orderBy('category'), orderBy('name'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data()
   } as MenuItem));
 }
 
 export async function addMenuItem(data: Omit<MenuItem, 'id'>): Promise<string> {
   checkAuth();
-  const docRef = await addDoc(collection(db, 'menuItems'), {
+  const docRef = await addDoc(collection(db, COLLECTIONS.MENU), {
     ...data,
     createdAt: Date.now()
   });
@@ -39,10 +40,10 @@ export async function addMenuItem(data: Omit<MenuItem, 'id'>): Promise<string> {
 
 export async function updateMenuItem(id: string, data: Partial<MenuItem>): Promise<void> {
   checkAuth();
-  await updateDoc(doc(db, 'menuItems', id), data);
+  await updateDoc(doc(db, COLLECTIONS.MENU, id), data);
 }
 
 export async function deleteMenuItem(id: string): Promise<void> {
   checkAuth();
-  await deleteDoc(doc(db, 'menuItems', id));
+  await deleteDoc(doc(db, COLLECTIONS.MENU, id));
 } 

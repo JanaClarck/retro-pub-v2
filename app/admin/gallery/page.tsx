@@ -6,9 +6,10 @@ import { AuthStateWrapper } from '@/components/auth/AuthStateWrapper';
 import { GalleryAdminView, GalleryImage } from '@/components/admin/gallery/GalleryAdminView';
 import { GalleryCategory } from '@/components/admin/gallery/GalleryCategorySelector';
 import { getGalleryCategories, getGalleryImages, addGalleryCategory, deleteGalleryCategory, addGalleryImage, deleteGalleryImage, ensureDefaultCategory } from '@/services/gallery';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection } from '@firebase/firestore';
 import { db } from '@/firebase/client';
 import { useAuth } from '@/context/AuthContext';
+import { COLLECTIONS } from '@/constants/collections';
 
 function GalleryPage() {
   const { isAuthenticated } = useAuth();
@@ -88,7 +89,7 @@ function GalleryPage() {
         categoryId,
         createdAt: Date.now()
       };
-      const docRef = await addDoc(collection(db, 'galleryImages'), {
+      const docRef = await addDoc(collection(db, COLLECTIONS.GALLERY), {
         url,
         fileName,
         categoryId,

@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs } from '@firebase/firestore';
 import { db } from '@/firebase/client';
 import { Card, LoadingSpinner } from '@/components/ui';
 import Image from 'next/image';
+import { COLLECTIONS } from '@/constants/collections';
 
 interface GalleryImage {
   id: string;
@@ -36,7 +37,7 @@ export function GalleryGrid({ className = '' }: GalleryGridProps) {
       try {
         // Fetch categories first
         const categoriesQuery = query(
-          collection(db, 'galleryCategories'),
+          collection(db, COLLECTIONS.GALLERY),
           orderBy('name')
         );
         const categoriesSnapshot = await getDocs(categoriesQuery);
@@ -48,7 +49,7 @@ export function GalleryGrid({ className = '' }: GalleryGridProps) {
 
         // Then fetch images
         const imagesQuery = query(
-          collection(db, 'galleryImages'),
+          collection(db, COLLECTIONS.GALLERY),
           orderBy('createdAt', 'desc')
         );
         const imagesSnapshot = await getDocs(imagesQuery);

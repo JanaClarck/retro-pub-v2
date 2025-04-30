@@ -1,5 +1,5 @@
 import {
-  collection as firestoreCollection,
+  collection,
   doc,
   getDocs,
   getDoc,
@@ -13,11 +13,8 @@ import {
   DocumentData,
   QueryConstraint,
   Timestamp
-} from 'firebase/firestore';
+} from '@firebase/firestore';
 import { db } from './client';
-
-// Re-export collection
-export const collection = firestoreCollection;
 
 // Generic type for Firestore documents
 export interface FirestoreDocument {

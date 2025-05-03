@@ -1,6 +1,5 @@
 import * as admin from 'firebase-admin';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { isValid } from 'date-fns';
 
 // Initialize Firebase Admin
 const serviceAccount = require('../service-account-key.json');
@@ -10,374 +9,243 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-// Types for document validation
-interface ValidationResult {
-  isValid: boolean;
+// Types
+interface ValidationError {
+  collection: string;
+  docId: string;
   errors: string[];
 }
 
-interface CollectionValidationSummary {
-  total: number;
-  valid: number;
-  invalid: number;
-  skipped: number;
-  invalidDocs: Array<{
-    id: string;
-    errors: string[];
-  }>;
-}
-
 interface ValidationReport {
-  collections: {
-    [key: string]: CollectionValidationSummary;
+  success: boolean;
+  errors: ValidationError[];
+  accessErrors: string[];
+  stats: {
+    totalDocuments: number;
+    validDocuments: number;
+    invalidDocuments: number;
   };
-  sections: {
-    [key: string]: ValidationResult;
-  };
-  timestamp: string;
-  totalDocuments: number;
-  totalValid: number;
-  totalInvalid: number;
-  totalSkipped: number;
 }
 
-// Validation schemas
-interface SchemaTypes {
-  [key: string]: string | string[];
+interface Event {
+  title: string;
+  description: string;
+  date: admin.firestore.Timestamp;
+  time: string;
+  imageUrl: string;
+  isActive: boolean;
 }
 
-interface Schema {
-  required: string[];
-  types: SchemaTypes;
-}
-
-const schemas: Record<string, Schema> = {
-  events: {
-    required: ['title', 'description', 'date', 'time', 'imageUrl', 'isActive'],
-    types: {
-      title: 'string',
-      description: 'string',
-      date: ['string', 'timestamp'],
-      time: ['string', 'timestamp'],
-      imageUrl: 'string',
-      isActive: 'boolean',
-      price: 'number',
-      capacity: 'number'
-    }
-  },
-  menuItems: {
-    required: ['name', 'price', 'category'],
-    types: {
-      name: 'string',
-      price: 'number',
-      category: 'string',
-      description: 'string'
-    }
-  },
-  gallery: {
-    required: ['imageUrl', 'categoryId'],
-    types: {
-      imageUrl: 'string',
-      categoryId: 'string'
-    }
-  },
-  bookings: {
-    required: ['date', 'time', 'status'],
-    types: {
-      date: ['string', 'timestamp'],
-      time: ['string', 'timestamp'],
-      status: 'string',
-      name: 'string',
-      email: 'string',
-      phone: 'string'
-    }
-  },
-  users: {
-    required: ['email', 'role'],
-    types: {
-      email: 'string',
-      role: 'string'
-    }
-  },
-  sections: {
-    required: ['content'],
-    types: {
-      content: 'string',
-      imageUrl: 'string'
-    }
-  }
-};
-
-// Helper functions
-function isValidTimestamp(value: any): boolean {
-  if (!value) return false;
-  
-  if (value instanceof admin.firestore.Timestamp) {
-    return true;
-  }
-  
-  if (value instanceof Date) {
-    return true;
-  }
-  
-  if (typeof value === 'string') {
-    const date = new Date(value);
-    return !isNaN(date.getTime());
-  }
-  
-  if (typeof value === 'number') {
-    return value > 0;
-  }
-  
-  return false;
-}
-
-function isValidUrl(value: string): boolean {
+// Validation functions
+function isValidUrl(url: string): boolean {
   try {
-    new URL(value);
+    new URL(url);
     return true;
   } catch {
     // Check if it's a Firebase Storage path
-    return value.startsWith('gs://') || value.startsWith('https://firebasestorage.googleapis.com/');
+    return url.startsWith('gs://') || url.startsWith('https://firebasestorage.googleapis.com/');
   }
 }
 
-function validateFieldType(value: any, expectedType: string | string[]): boolean {
-  if (Array.isArray(expectedType)) {
-    return expectedType.some(type => validateFieldType(value, type));
-  }
-
-  switch (expectedType) {
-    case 'string':
-      return typeof value === 'string';
-    case 'number':
-      return typeof value === 'number';
-    case 'boolean':
-      return typeof value === 'boolean';
-    case 'timestamp':
-      return isValidTimestamp(value);
-    default:
-      return true;
-  }
+function isValidTime(time: string): boolean {
+  // Check HH:MM format
+  return /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time);
 }
 
-// Validate a single document
-function validateDocument(
-  data: Record<string, any>,
-  schema: Schema,
-  docId: string
-): ValidationResult {
-  const errors: string[] = [];
-
-  // Check required fields
-  for (const field of schema.required) {
-    if (!data[field]) {
-      errors.push(`Missing required field: ${field}`);
-    }
-  }
-
-  // Check field types
-  for (const [field, value] of Object.entries(data)) {
-    const expectedType = schema.types[field];
-    if (expectedType && !validateFieldType(value, expectedType)) {
-      errors.push(`Invalid type for field ${field}: expected ${expectedType}, got ${typeof value}`);
-    }
-
-    // Additional URL validation for image fields
-    if (field.includes('imageUrl') && value && typeof value === 'string' && !isValidUrl(value)) {
-      errors.push(`Invalid URL format for ${field}`);
-    }
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
-
-// Validate a collection
-async function validateCollection(
-  collectionName: string,
-  schema: Schema
-): Promise<CollectionValidationSummary> {
-  console.log(`\n🔍 Validating collection: ${collectionName}`);
+async function validateHeroSection(): Promise<ValidationError[]> {
+  const errors: ValidationError[] = [];
   
-  const summary: CollectionValidationSummary = {
-    total: 0,
-    valid: 0,
-    invalid: 0,
-    skipped: 0,
-    invalidDocs: []
-  };
-
   try {
-    const snapshot = await db.collection(collectionName).get();
-    summary.total = snapshot.size;
+    const heroDoc = await db.doc('sections/hero').get();
+    
+    if (!heroDoc.exists) {
+      errors.push({
+        collection: 'sections',
+        docId: 'hero',
+        errors: ['Document does not exist']
+      });
+      return errors;
+    }
 
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-      const validation = validateDocument(data, schema, doc.id);
+    const data = heroDoc.data();
+    const docErrors: string[] = [];
 
-      if (validation.isValid) {
-        summary.valid++;
-      } else {
-        summary.invalid++;
-        summary.invalidDocs.push({
-          id: doc.id,
-          errors: validation.errors
+    if (!data?.imageUrl) {
+      docErrors.push('Missing imageUrl field');
+    } else if (!isValidUrl(data.imageUrl)) {
+      docErrors.push('Invalid imageUrl format');
+    }
+
+    if (docErrors.length > 0) {
+      errors.push({
+        collection: 'sections',
+        docId: 'hero',
+        errors: docErrors
+      });
+    }
+  } catch (error: any) {
+    errors.push({
+      collection: 'sections',
+      docId: 'hero',
+      errors: [`Access error: ${error.message}`]
+    });
+  }
+
+  return errors;
+}
+
+async function validateEvents(): Promise<ValidationError[]> {
+  const errors: ValidationError[] = [];
+  
+  try {
+    const eventsSnapshot = await db.collection('events').get();
+    
+    if (eventsSnapshot.empty) {
+      errors.push({
+        collection: 'events',
+        docId: '*',
+        errors: ['No events found in collection']
+      });
+      return errors;
+    }
+
+    let hasActiveEvent = false;
+
+    eventsSnapshot.forEach(doc => {
+      const data = doc.data() as Event;
+      const docErrors: string[] = [];
+
+      // Check required fields
+      if (!data.title) docErrors.push('Missing title');
+      if (!data.description) docErrors.push('Missing description');
+      if (!data.date) {
+        docErrors.push('Missing date');
+      } else if (!(data.date instanceof admin.firestore.Timestamp)) {
+        docErrors.push('Invalid date format (must be Firestore Timestamp)');
+      }
+      if (!data.time) {
+        docErrors.push('Missing time');
+      } else if (!isValidTime(data.time)) {
+        docErrors.push('Invalid time format (must be HH:MM)');
+      }
+      if (!data.imageUrl) {
+        docErrors.push('Missing imageUrl');
+      } else if (!isValidUrl(data.imageUrl)) {
+        docErrors.push('Invalid imageUrl format');
+      }
+      if (typeof data.isActive !== 'boolean') {
+        docErrors.push('Missing or invalid isActive flag');
+      }
+
+      if (data.isActive) {
+        hasActiveEvent = true;
+      }
+
+      if (docErrors.length > 0) {
+        errors.push({
+          collection: 'events',
+          docId: doc.id,
+          errors: docErrors
         });
       }
+    });
+
+    if (!hasActiveEvent) {
+      errors.push({
+        collection: 'events',
+        docId: '*',
+        errors: ['No active events found']
+      });
     }
   } catch (error: any) {
-    console.error(`❌ Error validating ${collectionName}:`, error?.message || 'Unknown error');
-    summary.skipped = summary.total;
+    errors.push({
+      collection: 'events',
+      docId: '*',
+      errors: [`Access error: ${error.message}`]
+    });
   }
 
-  return summary;
-}
-
-// Validate a single section document
-async function validateSection(
-  docPath: string,
-  schema: Schema
-): Promise<ValidationResult> {
-  try {
-    const doc = await db.doc(docPath).get();
-    if (!doc.exists) {
-      return { isValid: false, errors: ['Document does not exist'] };
-    }
-
-    const data = doc.data();
-    if (!data) {
-      return { isValid: false, errors: ['Document exists but has no data'] };
-    }
-
-    return validateDocument(data as Record<string, any>, schema, doc.id);
-  } catch (error: any) {
-    return {
-      isValid: false,
-      errors: [`Error fetching document: ${error?.message || 'Unknown error'}`]
-    };
-  }
+  return errors;
 }
 
 // Main validation function
 async function validateFirestore(): Promise<ValidationReport> {
-  console.log('🚀 Starting Firestore validation...');
+  console.log('🔍 Starting Firestore validation...\n');
 
   const report: ValidationReport = {
-    collections: {},
-    sections: {},
-    timestamp: new Date().toISOString(),
-    totalDocuments: 0,
-    totalValid: 0,
-    totalInvalid: 0,
-    totalSkipped: 0
+    success: true,
+    errors: [],
+    accessErrors: [],
+    stats: {
+      totalDocuments: 0,
+      validDocuments: 0,
+      invalidDocuments: 0
+    }
   };
 
-  // Validate collections
-  const collections = ['events', 'menuItems', 'gallery', 'users', 'bookings'];
-  for (const collection of collections) {
-    report.collections[collection] = await validateCollection(
-      collection,
-      schemas[collection as keyof typeof schemas]
-    );
-  }
-
-  // Validate section documents
-  const sectionDocs = [
-    'sections/hero',
-    'sections/about',
-    'sections/interior',
-    'sections/menu.description',
-    'sections/gallery.description'
-  ];
-
-  for (const docPath of sectionDocs) {
-    report.sections[docPath] = await validateSection(docPath, schemas.sections);
-  }
-
-  // Validate gallery categories
   try {
-    const categoriesSnapshot = await db.doc('sections/gallery')
-      .collection('categories')
-      .get();
-    
-    report.sections['sections/gallery/categories'] = {
-      isValid: true,
-      errors: []
-    };
+    // Validate hero section
+    console.log('Checking hero section...');
+    const heroErrors = await validateHeroSection();
+    report.errors.push(...heroErrors);
 
-    if (categoriesSnapshot.empty) {
-      report.sections['sections/gallery/categories'].errors.push('No gallery categories found');
-    }
+    // Validate events
+    console.log('Checking events collection...');
+    const eventErrors = await validateEvents();
+    report.errors.push(...eventErrors);
+
+    // Update stats
+    report.stats.totalDocuments = 1 + (await db.collection('events').count().get()).data().count;
+    report.stats.invalidDocuments = report.errors.length;
+    report.stats.validDocuments = report.stats.totalDocuments - report.stats.invalidDocuments;
+
+    // Set success flag
+    report.success = report.errors.length === 0;
   } catch (error: any) {
-    report.sections['sections/gallery/categories'] = {
-      isValid: false,
-      errors: [`Error fetching gallery categories: ${error?.message || 'Unknown error'}`]
-    };
-  }
-
-  // Calculate totals
-  for (const summary of Object.values(report.collections)) {
-    report.totalDocuments += summary.total;
-    report.totalValid += summary.valid;
-    report.totalInvalid += summary.invalid;
-    report.totalSkipped += summary.skipped;
-  }
-
-  // Print summary
-  console.log('\n📊 Validation Summary:');
-  
-  // Collections summary
-  for (const [collection, summary] of Object.entries(report.collections)) {
-    console.log(`\n${collection}:`);
-    console.log(`- Total: ${summary.total}`);
-    console.log(`- Valid: ${summary.valid}`);
-    console.log(`- Invalid: ${summary.invalid}`);
-    console.log(`- Skipped: ${summary.skipped}`);
-
-    if (summary.invalidDocs.length > 0) {
-      console.log('\nInvalid documents:');
-      summary.invalidDocs.forEach(doc => {
-        console.log(`\n  ${doc.id}:`);
-        doc.errors.forEach(error => console.log(`  - ${error}`));
-      });
-    }
-  }
-
-  // Sections summary
-  console.log('\nSections:');
-  for (const [path, result] of Object.entries(report.sections)) {
-    console.log(`\n${path}:`);
-    console.log(`- Valid: ${result.isValid}`);
-    if (result.errors.length > 0) {
-      console.log('- Errors:');
-      result.errors.forEach(error => console.log(`  - ${error}`));
-    }
-  }
-
-  // Write report to file
-  try {
-    await fs.writeFile(
-      'validation-report.json',
-      JSON.stringify(report, null, 2)
-    );
-    console.log('\n✅ Validation report written to validation-report.json');
-  } catch (error: any) {
-    console.error('\n❌ Error writing report:', error?.message || 'Unknown error');
+    report.accessErrors.push(`Failed to access Firestore: ${error.message}`);
+    report.success = false;
   }
 
   return report;
 }
 
+// Print validation report
+function printReport(report: ValidationReport) {
+  console.log('\n📊 Validation Report');
+  console.log('==================');
+  
+  // Print stats
+  console.log('\n📈 Statistics:');
+  console.log(`Total documents checked: ${report.stats.totalDocuments}`);
+  console.log(`Valid documents: ${report.stats.validDocuments}`);
+  console.log(`Invalid documents: ${report.stats.invalidDocuments}`);
+
+  // Print validation errors
+  if (report.errors.length > 0) {
+    console.log('\n❌ Validation Errors:');
+    report.errors.forEach(error => {
+      console.log(`\n${error.collection}/${error.docId}:`);
+      error.errors.forEach(err => console.log(`  - ${err}`));
+    });
+  }
+
+  // Print access errors
+  if (report.accessErrors.length > 0) {
+    console.log('\n⚠️  Access Errors:');
+    report.accessErrors.forEach(error => console.log(`  - ${error}`));
+  }
+
+  // Print final status
+  console.log('\n🏁 Final Status:', report.success ? '✅ PASSED' : '❌ FAILED');
+}
+
 // Run validation
 validateFirestore()
-  .then(() => {
-    console.log('\n✅ Validation completed');
-    process.exit(0);
+  .then(report => {
+    printReport(report);
+    process.exit(report.success ? 0 : 1);
   })
-  .catch((error) => {
-    console.error('\n❌ Validation failed:', error);
+  .catch(error => {
+    console.error('\n❌ Validation script failed:', error);
     process.exit(1);
   }); 

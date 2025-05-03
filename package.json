@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate": "ts-node --project tsconfig.scripts.json scripts/migrate-firestore.ts",
+    "validate": "ts-node --project tsconfig.scripts.json scripts/validate-firestore.ts"
   },
   "dependencies": {
     "date-fns": "^4.1.0",

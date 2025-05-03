@@ -1,96 +1,219 @@
 'use client';
 
-import { useState } from 'react';
-import { Card } from '@/components/ui';
-import { Modal } from '@/components/ui';
-import { StorageFile } from '@/firebase-config/storage';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { z } from 'zod';
+import { db } from '@/firebase-config/client';
+import { LoadingSpinner } from '@/components/ui';
+import { COLLECTIONS } from '@/constants/collections';
 
-export interface GallerySectionProps {
-  title?: string;
-  images: StorageFile[];
-  columns?: 2 | 3 | 4;
-  className?: string;
+// Zod schema for runtime validation
+const galleryImageSchema = z.object({
+  id: z.string(),
+  imageUrl: z.string().url('Invalid image URL'),
+  categoryId: z.string().min(1, 'Category ID is required'),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  createdAt: z.instanceof(Timestamp),
+  updatedAt: z.instanceof(Timestamp).optional(),
+  order: z.number().optional()
+});
+
+const galleryCategorySchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Category name is required'),
+  description: z.string().optional(),
+  order: z.number().optional()
+});
+
+type FirestoreGalleryImage = z.infer<typeof galleryImageSchema>;
+type FirestoreGalleryCategory = z.infer<typeof galleryCategorySchema>;
+
+interface GalleryImage extends Omit<FirestoreGalleryImage, 'createdAt' | 'updatedAt'> {
+  createdAt: Date;
+  updatedAt?: Date;
 }
 
-export function GallerySection({ 
-  title, 
-  images, 
-  columns = 3,
-  className = '' 
-}: GallerySectionProps) {
-  const [selectedImage, setSelectedImage] = useState<StorageFile | null>(null);
+interface GalleryCategory extends FirestoreGalleryCategory {
+  images: GalleryImage[];
+}
 
-  const gridCols = {
-    2: 'md:grid-cols-2',
-    3: 'md:grid-cols-2 lg:grid-cols-3',
-    4: 'md:grid-cols-2 lg:grid-cols-4',
-  };
+export function GallerySection() {
+  const [categories, setCategories] = useState<GalleryCategory[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchGalleryData = async () => {
+      try {
+        // Fetch categories
+        const categoriesSnapshot = await getDocs(
+          query(
+            collection(db, COLLECTIONS.SECTIONS, 'galleryCategories', 'categories'),
+            orderBy('order', 'asc')
+          )
+        );
+
+        const validatedCategories: GalleryCategory[] = [];
+        
+        for (const doc of categoriesSnapshot.docs) {
+          try {
+            const rawCategory = { id: doc.id, ...doc.data() };
+            const validCategory = galleryCategorySchema.parse(rawCategory);
+            validatedCategories.push({ ...validCategory, images: [] });
+          } catch (validationError) {
+            console.warn(`Skipping invalid gallery category ${doc.id}:`, validationError);
+          }
+        }
+
+        if (validatedCategories.length === 0) {
+          setCategories([]);
+          setLoading(false);
+          return;
+        }
+
+        // Set initial active category
+        setActiveCategory(validatedCategories[0].id);
+
+        // Fetch images
+        const imagesSnapshot = await getDocs(
+          query(
+            collection(db, COLLECTIONS.GALLERY),
+            orderBy('order', 'asc'),
+            orderBy('createdAt', 'desc')
+          )
+        );
+
+        // Process and validate each image
+        for (const doc of imagesSnapshot.docs) {
+          try {
+            const rawData = { id: doc.id, ...doc.data() };
+            const validData = galleryImageSchema.parse(rawData);
+
+            // Convert timestamps to dates
+            const image: GalleryImage = {
+              ...validData,
+              createdAt: validData.createdAt.toDate(),
+              updatedAt: validData.updatedAt?.toDate()
+            };
+
+            // Add image to its category
+            const category = validatedCategories.find(c => c.id === image.categoryId);
+            if (category) {
+              category.images.push(image);
+            }
+          } catch (validationError) {
+            console.warn(`Skipping invalid gallery image ${doc.id}:`, validationError);
+          }
+        }
+
+        setCategories(validatedCategories);
+      } catch (err) {
+        console.error('Error fetching gallery data:', err);
+        setError(err instanceof z.ZodError 
+          ? 'Invalid gallery data structure' 
+          : 'Failed to load gallery');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGalleryData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-[300px] flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-[300px] flex items-center justify-center">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
+
+  if (categories.length === 0) {
+    return (
+      <div className="min-h-[300px] flex items-center justify-center">
+        <p className="text-gray-500">No gallery images available</p>
+      </div>
+    );
+  }
 
   return (
-    <section className={className}>
-      {title && (
-        <h2 className="text-2xl font-semibold mb-6">{title}</h2>
-      )}
-
-      <div className={`grid grid-cols-1 ${gridCols[columns]} gap-6`}>
-        {images.map((image) => (
-          <Card 
-            key={image.id} 
-            className="overflow-hidden group cursor-pointer"
-            onClick={() => setSelectedImage(image)}
-          >
-            <div className="relative aspect-square">
-              <img
-                src={image.url}
-                alt={image.name}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-25 transition-opacity duration-300" />
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Image Modal */}
-      <Modal
-        isOpen={!!selectedImage}
-        onClose={() => setSelectedImage(null)}
-        className="max-w-4xl"
-      >
-        {selectedImage && (
-          <div className="relative">
-            <img
-              src={selectedImage.url}
-              alt={selectedImage.name}
-              className="w-full h-auto max-h-[80vh] object-contain"
-            />
-            <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/75 transition-colors"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+    <section className="py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Category Tabs */}
+        <div className="mb-12">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8" aria-label="Gallery categories">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveCategory(category.id)}
+                  className={`
+                    whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm
+                    ${activeCategory === category.id
+                      ? 'border-amber-500 text-amber-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }
+                  `}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </nav>
           </div>
-        )}
-      </Modal>
-
-      {images.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No images available.</p>
         </div>
-      )}
+
+        {/* Gallery Grid */}
+        <div className="space-y-16">
+          {categories
+            .filter(category => !activeCategory || category.id === activeCategory)
+            .map((category) => (
+              <div key={category.id} className="space-y-8">
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-bold text-gray-900">
+                    {category.name}
+                  </h2>
+                  {category.description && (
+                    <p className="text-gray-600">{category.description}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {category.images.map((image) => (
+                    <div
+                      key={image.id}
+                      className="aspect-square relative overflow-hidden rounded-lg shadow-lg"
+                    >
+                      <Image
+                        src={image.imageUrl}
+                        alt={image.title || ''}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover"
+                        loading="lazy"
+                      />
+                      {image.title && (
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+                          <p className="text-white font-medium">{image.title}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+        </div>
+      </div>
     </section>
   );
 } 

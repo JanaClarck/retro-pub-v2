@@ -2,169 +2,169 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
+import { z } from 'zod';
 import { db } from '@/firebase-config/client';
 import { LoadingSpinner } from '@/components/ui';
-import { z } from 'zod';
-import { getDocument, FirestoreDocument } from '@/firebase-config/firestore';
+import { COLLECTIONS } from '@/constants/collections';
 
 // Zod schema for runtime validation
-const aboutSchema = z.object({
-  id: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  title: z.string(),
-  description: z.string(),
-  imageUrl: z.string().url(),
-  stats: z.array(z.object({
-    value: z.string(),
-    label: z.string()
-  })).optional(),
-  hours: z.object({
-    bar: z.array(z.object({
-      days: z.string(),
-      hours: z.string()
-    })),
-    kitchen: z.array(z.object({
-      days: z.string(),
-      hours: z.string()
-    }))
-  }).optional()
+const statSchema = z.object({
+  label: z.string().min(1, 'Label is required'),
+  value: z.union([z.string(), z.number()]).refine(val => val !== '', {
+    message: 'Value is required'
+  })
 });
 
-interface AboutContent extends FirestoreDocument {
-  title: string;
-  description: string;
-  imageUrl: string;
-  stats?: Array<{
-    value: string;
-    label: string;
-  }>;
-  hours?: {
-    bar: Array<{
-      days: string;
-      hours: string;
-    }>;
-    kitchen: Array<{
-      days: string;
-      hours: string;
-    }>;
-  };
+const hoursSchema = z.object({
+  day: z.string().min(1, 'Day is required'),
+  time: z.string().min(1, 'Time is required')
+});
+
+const aboutSchema = z.object({
+  heading: z.string().min(1, 'Heading is required'),
+  subheading: z.string().min(1, 'Subheading is required'),
+  description: z.string().min(1, 'Description is required'),
+  imageUrl: z.string().url('Invalid image URL'),
+  stats: z.array(statSchema).optional(),
+  hours: z.array(hoursSchema).optional(),
+  updatedAt: z.instanceof(Timestamp).optional()
+});
+
+type FirestoreAbout = z.infer<typeof aboutSchema>;
+
+interface About extends Omit<FirestoreAbout, 'updatedAt'> {
+  updatedAt?: Date;
 }
 
-interface AboutSectionProps {
-  className?: string;
-}
-
-export function AboutSection({ className = '' }: AboutSectionProps) {
-  const [content, setContent] = useState<AboutContent | null>(null);
+export function AboutSection() {
+  const [aboutData, setAboutData] = useState<About | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchContent = async () => {
+    const fetchAboutData = async () => {
       try {
-        const data = await getDocument<AboutContent>('sections', 'about');
+        const docRef = doc(db, COLLECTIONS.SECTIONS, 'about');
+        const docSnap = await getDoc(docRef);
 
-        if (!data) {
-          setError('About section is under construction');
+        if (!docSnap.exists()) {
+          setAboutData(null);
           return;
         }
 
-        // Validate the data at runtime
-        const validatedData = aboutSchema.parse(data);
-        setContent(validatedData);
+        try {
+          const rawData = docSnap.data();
+          const validData = aboutSchema.parse(rawData);
+
+          setAboutData({
+            ...validData,
+            updatedAt: validData.updatedAt?.toDate()
+          });
+        } catch (validationError) {
+          console.error('About section validation error:', validationError);
+          setError('Invalid about section data structure');
+        }
       } catch (err) {
-        console.error('Error fetching about section:', err);
-        setError(err instanceof z.ZodError 
-          ? 'Invalid content structure' 
-          : 'Failed to load about section');
+        console.error('Error fetching about data:', err);
+        setError('Failed to load about section');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchContent();
+    fetchAboutData();
   }, []);
 
   if (loading) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center">
+      <div className="min-h-[300px] flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
   }
 
-  if (error || !content) {
+  if (error) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <p className="text-gray-500">{error || 'About section is under construction'}</p>
+      <div className="min-h-[300px] flex items-center justify-center">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
+
+  if (!aboutData) {
+    return (
+      <div className="min-h-[300px] flex items-center justify-center">
+        <p className="text-gray-500">About section information not available</p>
       </div>
     );
   }
 
   return (
-    <div className={className}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-        <div>
-          <h1 className="text-4xl font-bold mb-6">{content.title}</h1>
-          <div 
-            className="space-y-6 text-gray-600"
-            dangerouslySetInnerHTML={{ __html: content.description }}
-          />
+    <section className="py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
+          {/* Image */}
+          <div className="relative aspect-[4/3] mb-12 lg:mb-0">
+            <Image
+              src={aboutData.imageUrl}
+              alt="About Us"
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover rounded-lg shadow-lg"
+              priority
+            />
+          </div>
 
-          {content.stats && content.stats.length > 0 && (
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-              {content.stats.map((stat, index: number) => (
-                <div key={index} className="text-center">
-                  <h3 className="text-2xl font-bold text-amber-600">{stat.value}</h3>
-                  <p className="text-gray-600">{stat.label}</p>
-                </div>
-              ))}
+          {/* Content */}
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <h1 className="text-4xl font-bold text-gray-900">
+                {aboutData.heading}
+              </h1>
+              <p className="text-xl text-amber-600 font-semibold">
+                {aboutData.subheading}
+              </p>
+              <div className="prose prose-lg">
+                <p>{aboutData.description}</p>
+              </div>
             </div>
-          )}
-        </div>
 
-        <div className="relative h-[600px] rounded-lg overflow-hidden">
-          <Image
-            src={content.imageUrl}
-            alt={content.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 1024px) 100vw, 50vw"
-          />
-        </div>
-      </div>
-
-      {content.hours && (
-        <div className="mt-16">
-          <h2 className="text-3xl font-bold mb-8 text-center">Opening Hours</h2>
-          <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-bold mb-4">Bar Hours</h3>
-              <ul className="space-y-2">
-                {content.hours.bar.map((item, index: number) => (
-                  <li key={index} className="flex justify-between">
-                    <span>{item.days}</span>
-                    <span>{item.hours}</span>
-                  </li>
+            {/* Stats Grid */}
+            {aboutData.stats && aboutData.stats.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 py-8">
+                {aboutData.stats.map((stat, index) => (
+                  <div key={index} className="text-center">
+                    <div className="text-3xl font-bold text-amber-600">
+                      {stat.value}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {stat.label}
+                    </div>
+                  </div>
                 ))}
-              </ul>
-            </div>
+              </div>
+            )}
 
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-bold mb-4">Kitchen Hours</h3>
-              <ul className="space-y-2">
-                {content.hours.kitchen.map((item, index: number) => (
-                  <li key={index} className="flex justify-between">
-                    <span>{item.days}</span>
-                    <span>{item.hours}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {/* Opening Hours */}
+            {aboutData.hours && aboutData.hours.length > 0 && (
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Opening Hours
+                </h3>
+                <dl className="space-y-2">
+                  {aboutData.hours.map((hour, index) => (
+                    <div key={index} className="flex justify-between">
+                      <dt className="font-medium text-gray-600">{hour.day}</dt>
+                      <dd className="text-gray-900">{hour.time}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </div>
+      </div>
+    </section>
   );
 } 

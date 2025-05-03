@@ -2,33 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import { z } from 'zod';
 import { db } from '@/firebase-config/client';
 import { EventCard } from './EventCard';
 import { LoadingSpinner } from '@/components/ui';
-import { FirestoreDocument } from '@/firebase-config/firestore';
 import { COLLECTIONS } from '@/constants/collections';
 
-interface FirestoreEvent extends FirestoreDocument {
-  title: string;
-  description: string;
-  date: Timestamp;
-  time: Timestamp;
-  imageUrl: string;
-  isActive: boolean;
-  price?: number;
-  capacity?: number;
-}
+// Zod schema for runtime validation
+const eventSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().min(1, 'Description is required'),
+  date: z.instanceof(Timestamp),
+  time: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
+  imageUrl: z.string().url('Invalid image URL'),
+  isActive: z.boolean(),
+  price: z.number().optional(),
+  capacity: z.number().int().positive().optional()
+});
 
-export interface Event {
-  id: string;
-  title: string;
-  description: string;
+type FirestoreEvent = z.infer<typeof eventSchema>;
+
+export interface Event extends Omit<FirestoreEvent, 'date'> {
   date: Date;
-  time: Date;
-  imageUrl: string;
-  isActive: boolean;
-  price?: number;
-  capacity?: number;
 }
 
 interface EventsPreviewProps {
@@ -37,7 +33,11 @@ interface EventsPreviewProps {
   className?: string;
 }
 
-export function EventsPreview({ limit: limitCount = 3, showTitle = true, className = '' }: EventsPreviewProps) {
+export function EventsPreview({ 
+  limit: limitCount = 3, 
+  showTitle = true, 
+  className = '' 
+}: EventsPreviewProps) {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,34 +45,48 @@ export function EventsPreview({ limit: limitCount = 3, showTitle = true, classNa
   useEffect(() => {
     const fetchEvents = async () => {
       try {
+        // Create query with filters
         const eventsQuery = query(
           collection(db, COLLECTIONS.EVENTS),
           where('isActive', '==', true),
           orderBy('date', 'desc'),
-          orderBy('time', 'desc'),
           limit(limitCount)
         );
 
+        // Fetch events
         const snapshot = await getDocs(eventsQuery);
-        const fetchedEvents = snapshot.docs.map(doc => {
-          const data = doc.data() as FirestoreEvent;
-          return {
-            id: doc.id,
-            title: data.title,
-            description: data.description,
-            date: data.date.toDate(),
-            time: data.time.toDate(),
-            imageUrl: data.imageUrl,
-            isActive: data.isActive,
-            price: data.price,
-            capacity: data.capacity,
-          };
-        });
+        
+        if (snapshot.empty) {
+          setEvents([]);
+          return;
+        }
 
-        setEvents(fetchedEvents);
+        // Process and validate each event
+        const validatedEvents: Event[] = [];
+
+        for (const doc of snapshot.docs) {
+          try {
+            // Validate raw data
+            const rawData = { id: doc.id, ...doc.data() };
+            const validData = eventSchema.parse(rawData);
+
+            // Convert to Event type
+            validatedEvents.push({
+              ...validData,
+              date: validData.date.toDate()
+            });
+          } catch (validationError) {
+            console.warn(`Skipping invalid event ${doc.id}:`, validationError);
+            // Continue processing other events
+          }
+        }
+
+        setEvents(validatedEvents);
       } catch (err) {
         console.error('Error fetching events:', err);
-        setError('Failed to load events');
+        setError(err instanceof z.ZodError 
+          ? 'Invalid event data structure' 
+          : 'Failed to load events');
       } finally {
         setLoading(false);
       }

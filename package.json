@@ -9,7 +9,9 @@
     "lint": "next lint",
     "migrate": "ts-node --project tsconfig.scripts.json scripts/migrate-firestore.ts",
     "validate": "ts-node --project tsconfig.scripts.json scripts/validate-firestore.ts",
-    "fix-events": "ts-node --project tsconfig.scripts.json scripts/fix-events.ts"
+    "fix-events": "ts-node --project tsconfig.scripts.json scripts/fix-events.ts",
+    "verify": "ts-node --project tsconfig.scripts.json scripts/verify-app.ts",
+    "debug": "ts-node --project tsconfig.scripts.json scripts/debug-components.ts"
   },
   "dependencies": {
     "date-fns": "^4.1.0",

@@ -5,7 +5,7 @@ import axios from 'axios';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
 import { readFile, writeFile, mkdir } from 'fs/promises';
-import { storage, config, initAdmin } from '../firebase-config/admin';
+import { storage, config, adminApp } from '../firebase-config/admin';
 
 const streamPipeline = promisify(pipeline);
 
@@ -172,8 +172,7 @@ async function findAndFixBucketReferences(): Promise<FixReport> {
 async function main() {
   console.log('🔧 Starting Firebase Storage bucket fix...\n');
 
-  // Initialize Firebase Admin
-  initAdmin();
+  // Firebase Admin SDK is already initialized in the imported module
   console.log('✅ Firebase Admin SDK initialized');
 
   // Setup placeholder image

@@ -1,37 +1,21 @@
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getStorage } from 'firebase-admin/storage';
 import * as fs from 'fs';
 import { resolve } from 'path';
 import { glob } from 'glob';
-import * as dotenv from 'dotenv';
 import axios from 'axios';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
 import { readFile, writeFile, mkdir } from 'fs/promises';
+import { storage, config, initAdmin } from '../firebase-config/admin';
 
 const streamPipeline = promisify(pipeline);
 
 // Configuration
 const WORKSPACE_ROOT = resolve(__dirname, '..');
-const SERVICE_ACCOUNT_PATH = resolve(WORKSPACE_ROOT, 'firebase-admin.json');
 const ASSETS_DIR = resolve(WORKSPACE_ROOT, 'assets');
 const PLACEHOLDER_PATH = resolve(ASSETS_DIR, 'placeholder.jpg');
-const BUCKET_NAME = 'retropub-7bfe5';
+const BUCKET_NAME = config.storageBucket;
 const PLACEHOLDER_URL = 'https://placehold.co/512x384.jpg?text=Placeholder';
 const STORAGE_PATH = 'images/placeholder.jpg';
-
-interface ServiceAccount {
-  type: string;
-  project_id: string;
-  private_key_id: string;
-  private_key: string;
-  client_email: string;
-  client_id: string;
-  auth_uri: string;
-  token_uri: string;
-  auth_provider_x509_cert_url: string;
-  client_x509_cert_url: string;
-}
 
 interface FileReplacement {
   file: string;
@@ -58,16 +42,6 @@ async function downloadFile(url: string, outputPath: string): Promise<void> {
   await streamPipeline(response.data, fs.createWriteStream(outputPath));
 }
 
-// Helper function to safely read JSON
-async function readJsonFile<T>(path: string): Promise<T | undefined> {
-  try {
-    const content = await readFile(path, 'utf-8');
-    return JSON.parse(content) as T;
-  } catch (err) {
-    return undefined;
-  }
-}
-
 async function setupPlaceholder(): Promise<void> {
   // Create assets directory if needed
   if (!fs.existsSync(ASSETS_DIR)) {
@@ -86,8 +60,7 @@ async function setupPlaceholder(): Promise<void> {
 }
 
 async function uploadToStorage(): Promise<string> {
-  const storage = getStorage();
-  const bucket = storage.bucket(BUCKET_NAME);
+  const bucket = storage.bucket();
 
   console.log('ℹ️ Uploading to Firebase Storage...');
   await bucket.upload(PLACEHOLDER_PATH, {
@@ -127,7 +100,7 @@ async function findAndFixBucketReferences(): Promise<FixReport> {
       // Replace any *.appspot.com references
       content = content.replace(
         /([A-Za-z0-9_]+=['"]*)[a-z0-9-]+\.appspot\.com(['"]*)/g,
-        `$1retropub-7bfe5$2`
+        `$1${BUCKET_NAME}$2`
       );
 
       if (content !== originalContent) {
@@ -168,10 +141,10 @@ async function findAndFixBucketReferences(): Promise<FixReport> {
       
       if (bucketRegex.test(line) || storageRegex.test(line)) {
         const originalLine = line;
-        let newLine = line.replace(bucketRegex, `$1retropub-7bfe5$2`);
+        let newLine = line.replace(bucketRegex, `$1${BUCKET_NAME}$2`);
         newLine = newLine.replace(
           /bucket\(['"'][a-z0-9-]+\.appspot\.com['"']\)/g,
-          `bucket('retropub-7bfe5')`
+          `bucket('${BUCKET_NAME}')`
         );
 
         if (newLine !== originalLine) {
@@ -199,25 +172,11 @@ async function findAndFixBucketReferences(): Promise<FixReport> {
 async function main() {
   console.log('🔧 Starting Firebase Storage bucket fix...\n');
 
-  // 1. Load service account and initialize Firebase
-  const serviceAccount = await readJsonFile<ServiceAccount>(SERVICE_ACCOUNT_PATH);
-  if (!serviceAccount) {
-    console.error('❌ firebase-admin.json not found or invalid');
-    process.exit(1);
-  }
+  // Initialize Firebase Admin
+  initAdmin();
+  console.log('✅ Firebase Admin SDK initialized');
 
-  try {
-    initializeApp({
-      credential: cert(serviceAccount as any),
-      storageBucket: BUCKET_NAME
-    });
-    console.log('✅ Firebase Admin SDK initialized');
-  } catch (err) {
-    console.error('❌ Failed to initialize Firebase Admin:', err);
-    process.exit(1);
-  }
-
-  // 2. Setup placeholder image
+  // Setup placeholder image
   try {
     await setupPlaceholder();
   } catch (err) {
@@ -225,7 +184,7 @@ async function main() {
     process.exit(1);
   }
 
-  // 3. Upload to Firebase Storage
+  // Upload to Firebase Storage
   let signedUrl: string;
   try {
     signedUrl = await uploadToStorage();
@@ -235,15 +194,15 @@ async function main() {
     process.exit(1);
   }
 
-  // 4. Find and fix bucket references
+  // Find and fix bucket references
   console.log('\nℹ️ Scanning for bucket references...');
   const report = await findAndFixBucketReferences();
   report.signedUrl = signedUrl;
 
-  // 5. Print summary
+  // Print summary
   console.log('\n📋 Operation Summary:');
   console.log('✅ Placeholder uploaded');
-  console.log('✅ Bucket fixed: retropub-7bfe5');
+  console.log(`✅ Bucket fixed: ${BUCKET_NAME}`);
   
   if (report.envFilesUpdated.length > 0) {
     console.log(`🔄 Updated ${report.envFilesUpdated.length} env files:`);

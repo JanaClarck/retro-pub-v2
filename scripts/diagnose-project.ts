@@ -5,13 +5,17 @@ import * as fs from 'fs';
 import { resolve } from 'path';
 import { glob } from 'glob';
 import { readFile } from 'fs/promises';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config({ path: '.env.local' });
+dotenv.config();
 
 // Configuration
 const WORKSPACE_ROOT = resolve(__dirname, '..');
-const SERVICE_ACCOUNT_PATH = resolve(WORKSPACE_ROOT, 'firebase-admin.json');
 const ASSETS_DIR = resolve(WORKSPACE_ROOT, 'assets');
 const PLACEHOLDER_PATH = resolve(ASSETS_DIR, 'placeholder.jpg');
-const BUCKET_NAME = 'retropub-7bfe5';
+const BUCKET_NAME = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'retropub-7bfe5';
 const STORAGE_PATH = 'images/placeholder.jpg';
 
 interface ServiceAccount {
@@ -168,16 +172,21 @@ async function main(): Promise<void> {
 
   // 1. Load and initialize Firebase Admin SDK
   console.log('ℹ️ Loading Firebase Admin credentials...');
-  const serviceAccount = await readJsonFile<ServiceAccount>(SERVICE_ACCOUNT_PATH);
   
-  if (!serviceAccount) {
-    console.error('❌ firebase-admin.json not found or invalid');
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  
+  if (!privateKey || !process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL) {
+    console.error('❌ Missing Firebase Admin environment variables');
     process.exit(1);
   }
 
   try {
     initializeApp({
-      credential: cert(serviceAccount as any),
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey,
+      }),
       storageBucket: BUCKET_NAME
     });
     report.adminInitialized = true;

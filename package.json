@@ -11,9 +11,16 @@
     "validate": "ts-node --project tsconfig.scripts.json scripts/validate-firestore.ts",
     "fix-events": "ts-node --project tsconfig.scripts.json scripts/fix-events.ts",
     "verify": "ts-node --project tsconfig.scripts.json scripts/verify-app.ts",
-    "debug": "ts-node --project tsconfig.scripts.json scripts/debug-components.ts"
+    "debug": "ts-node --project tsconfig.scripts.json scripts/debug-components.ts",
+    "fix-deploy": "ts-node -P tsconfig.scripts.json scripts/fix-deploy.ts",
+    "fix-firestore": "ts-node --project tsconfig.scripts.json scripts/fix-firestore.ts",
+    "diagnose": "ts-node -P tsconfig.scripts.json scripts/diagnose-project.ts",
+    "fix-placeholder": "ts-node -P tsconfig.scripts.json scripts/fix-placeholder.ts",
+    "validate-bucket": "ts-node -P tsconfig.scripts.json scripts/validate-bucket.ts",
+    "fix-storage-bucket": "ts-node -P tsconfig.scripts.json scripts/fix-storage-bucket.ts"
   },
   "dependencies": {
+    "axios": "^1.9.0",
     "date-fns": "^4.1.0",
     "firebase": "^11.6.1",
     "next": "14.1.0",
@@ -27,6 +34,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.17",
+    "dotenv": "^16.5.0",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
     "firebase-admin": "^13.3.0",

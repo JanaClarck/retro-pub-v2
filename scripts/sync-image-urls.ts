@@ -7,7 +7,7 @@ import * as path from 'path';
 const serviceAccount = require('../service-account-key.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'retropub-7bfe5.appspot.com'  // Fixed bucket URL
+  storageBucket: 'retropub-7bfe5'  // Fixed bucket URL
 });
 
 const storage = getStorage();

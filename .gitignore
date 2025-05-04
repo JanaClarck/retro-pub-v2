@@ -43,3 +43,4 @@ service-account-key.json
 # IDE
 .idea/
 .vscode/
+firebase-admin.json

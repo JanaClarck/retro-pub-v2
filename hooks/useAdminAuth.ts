@@ -20,11 +20,24 @@ export function useAdminAuth() {
         if (!firebaseUser) {
           setUser(null);
           setIsLoading(false);
+          // Only redirect if not on login page
           if (pathname !== '/admin/login') {
             router.push('/admin/login');
           }
           return;
         }
+
+        // Get ID token for session cookie
+        const idToken = await firebaseUser.getIdToken();
+        
+        // Set session cookie via API route
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ idToken }),
+        });
 
         // Check if user has admin role in Firestore
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
@@ -35,6 +48,8 @@ export function useAdminAuth() {
         } else {
           // User is not an admin, sign them out
           await auth.signOut();
+          // Clear session cookie
+          await fetch('/api/auth/session', { method: 'DELETE' });
           setUser(null);
           if (pathname !== '/admin/login') {
             router.push('/admin/login');

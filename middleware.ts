@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifySessionCookie } from '@/lib/auth/verifySession';
 
 // We don't need middleware anymore since auth is handled client-side
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Skip middleware for login page
   if (request.nextUrl.pathname === '/admin/login') {
     return NextResponse.next();
@@ -10,8 +11,9 @@ export function middleware(request: NextRequest) {
 
   // Check for Firebase session cookie
   const session = request.cookies.get('__session')?.value;
+  const isValidSession = await verifySessionCookie(session);
 
-  if (!session) {
+  if (!isValidSession) {
     return NextResponse.redirect(new URL('/admin/login', request.url));
   }
 

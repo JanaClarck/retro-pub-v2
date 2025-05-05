@@ -1,20 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebase-config/client";
 import { createUserDocument } from "@/services/user";
 import { Card, Input, Button } from "@/components/ui";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const { user, role, isLoading } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!isLoading && user && role === 'admin') {
+      router.replace('/admin');
+    }
+  }, [user, role, isLoading, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -24,7 +33,7 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     setError(null);
 
     try {
@@ -38,15 +47,33 @@ export default function AdminLoginPage() {
       // Create or update user document in Firestore
       await createUserDocument(user.uid, user.email!);
 
-      // Redirect to admin dashboard
-      router.push("/admin");
-    } catch (error) {
+      // The router.replace will happen automatically through the useEffect above
+      // once the auth state changes
+    } catch (error: any) {
       console.error("Login error:", error);
-      setError("Invalid email or password.");
+      setError(
+        error.code === 'auth/invalid-credential' 
+          ? "Invalid email or password."
+          : "An error occurred. Please try again."
+      );
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+      </div>
+    );
+  }
+
+  // Don't show login form if already authenticated
+  if (user && role === 'admin') {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -66,6 +93,7 @@ export default function AdminLoginPage() {
               onChange={handleChange}
               required
               autoComplete="email"
+              disabled={isSubmitting}
             />
 
             <Input
@@ -76,6 +104,7 @@ export default function AdminLoginPage() {
               onChange={handleChange}
               required
               autoComplete="current-password"
+              disabled={isSubmitting}
             />
 
             {error && (
@@ -87,9 +116,10 @@ export default function AdminLoginPage() {
             <Button
               type="submit"
               className="w-full"
-              isLoading={isLoading}
+              isLoading={isSubmitting}
+              disabled={isSubmitting}
             >
-              Sign In
+              {isSubmitting ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
         </Card>

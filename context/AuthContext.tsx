@@ -10,6 +10,7 @@ interface AuthContextType {
   role: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  error: string | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   isLoading: true,
   isAuthenticated: false,
+  error: null,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -24,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -34,15 +37,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         if (firebaseUser) {
           setUser(firebaseUser);
+          setIsLoading(true); // Set loading while checking role
+          
           const userRole = await getUserRole(firebaseUser.uid);
+          
           if (mounted) {
             setRole(userRole);
-            setIsAuthenticated(true);
+            setIsAuthenticated(userRole === 'admin');
+            setError(null);
           }
         } else {
-          setUser(null);
-          setRole(null);
-          setIsAuthenticated(false);
+          if (mounted) {
+            setUser(null);
+            setRole(null);
+            setIsAuthenticated(false);
+            setError(null);
+          }
         }
       } catch (error) {
         console.error('Error in auth state change:', error);
@@ -50,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setRole(null);
           setIsAuthenticated(false);
+          setError('Failed to authenticate. Please try again.');
         }
       } finally {
         if (mounted) {
@@ -69,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role,
     isLoading,
     isAuthenticated,
+    error,
   };
 
   return (

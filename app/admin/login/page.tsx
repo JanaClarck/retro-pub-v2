@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebase-config/client";
 import { createUserDocument } from "@/services/user";
-import { Card, Input, Button } from "@/components/ui";
+import { Card, CardBody, Input, Button } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 
 export default function AdminLoginPage() {
@@ -65,7 +65,10 @@ export default function AdminLoginPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -84,44 +87,48 @@ export default function AdminLoginPage() {
         </div>
 
         <Card>
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            <Input
-              type="email"
-              name="email"
-              label="Email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              autoComplete="email"
-              disabled={isSubmitting}
-            />
+          <CardBody>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <Input
+                type="email"
+                name="email"
+                label="Email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                autoComplete="email"
+                disabled={isSubmitting}
+                placeholder="admin@example.com"
+              />
 
-            <Input
-              type="password"
-              name="password"
-              label="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              autoComplete="current-password"
-              disabled={isSubmitting}
-            />
+              <Input
+                type="password"
+                name="password"
+                label="Password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                autoComplete="current-password"
+                disabled={isSubmitting}
+                placeholder="••••••••"
+              />
 
-            {error && (
-              <div className="text-red-600 text-sm">
-                {error}
-              </div>
-            )}
+              {error && (
+                <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
+                  {error}
+                </div>
+              )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              isLoading={isSubmitting}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
+              <Button
+                type="submit"
+                className="w-full"
+                isLoading={isSubmitting}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </form>
+          </CardBody>
         </Card>
       </div>
     </div>

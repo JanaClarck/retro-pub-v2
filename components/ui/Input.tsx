@@ -9,9 +9,10 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, className, fullWidth = true, ...props }, ref) => {
-    const baseStyles = 'rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500';
+    const baseStyles = 'rounded-lg border border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2';
     const widthStyles = fullWidth ? 'w-full' : 'w-auto';
     const errorStyles = error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : '';
+    const disabledStyles = props.disabled ? 'bg-gray-100 cursor-not-allowed' : '';
 
     return (
       <div className={fullWidth ? 'w-full' : 'w-auto'}>
@@ -22,7 +23,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <input
           ref={ref}
-          className={twMerge(baseStyles, widthStyles, errorStyles, className)}
+          className={twMerge(baseStyles, widthStyles, errorStyles, disabledStyles, className)}
           {...props}
         />
         {error && (
@@ -31,4 +32,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       </div>
     );
   }
-); 
+);
+
+Input.displayName = 'Input'; 

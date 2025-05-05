@@ -7,6 +7,7 @@ import { AuthProvider } from '@/context/AuthContext';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://retropub.vercel.app"),
   title: {
     default: 'Retro Pub - Traditional British Pub Experience',
     template: '%s | Retro Pub'
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Retro Pub - Traditional British Pub Experience',
     description: 'Experience the charm of a traditional British pub with our carefully curated selection of beers, classic pub food, and regular live events.',
-    url: 'https://retropub.com',
+    url: 'https://retropub.vercel.app',
     siteName: 'Retro Pub',
     locale: 'en_US',
     type: 'website',

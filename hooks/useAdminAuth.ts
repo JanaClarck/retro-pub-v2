@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/firebase-config/client';
@@ -12,6 +12,7 @@ export function useAdminAuth() {
   const [user, setUser] = useState<AdminUser | null | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
@@ -19,7 +20,9 @@ export function useAdminAuth() {
         if (!firebaseUser) {
           setUser(null);
           setIsLoading(false);
-          router.push('/admin/login');
+          if (pathname !== '/admin/login') {
+            router.push('/admin/login');
+          }
           return;
         }
 
@@ -33,19 +36,23 @@ export function useAdminAuth() {
           // User is not an admin, sign them out
           await auth.signOut();
           setUser(null);
-          router.push('/admin/login');
+          if (pathname !== '/admin/login') {
+            router.push('/admin/login');
+          }
         }
       } catch (error) {
         console.error('Error checking admin status:', error);
         setUser(null);
-        router.push('/admin/login');
+        if (pathname !== '/admin/login') {
+          router.push('/admin/login');
+        }
       } finally {
         setIsLoading(false);
       }
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router, pathname]);
 
   return { user, isLoading };
 } 

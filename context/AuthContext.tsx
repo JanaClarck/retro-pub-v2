@@ -22,6 +22,8 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  console.log("[Debug] AuthProvider mounting");
+  
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,17 +31,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log("[Debug] Setting up Firebase auth listener");
     let mounted = true;
 
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (!mounted) return;
+      console.log("[Debug] Auth state changed:", { 
+        hasUser: !!firebaseUser,
+        mounted,
+        currentLoading: isLoading
+      });
+
+      if (!mounted) {
+        console.log("[Debug] Component unmounted, skipping state updates");
+        return;
+      }
 
       try {
         if (firebaseUser) {
+          console.log("[Debug] User authenticated, fetching role");
           setUser(firebaseUser);
           setIsLoading(true); // Set loading while checking role
           
           const userRole = await getUserRole(firebaseUser.uid);
+          console.log("[Debug] User role fetched:", userRole);
           
           if (mounted) {
             setRole(userRole);
@@ -47,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setError(null);
           }
         } else {
+          console.log("[Debug] No user, resetting state");
           if (mounted) {
             setUser(null);
             setRole(null);
@@ -55,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error) {
-        console.error('Error in auth state change:', error);
+        console.error("[Debug] Error in auth state change:", error);
         if (mounted) {
           setUser(null);
           setRole(null);
@@ -64,16 +79,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         if (mounted) {
+          console.log("[Debug] Setting loading to false");
           setIsLoading(false);
         }
       }
     });
 
     return () => {
+      console.log("[Debug] Cleaning up auth listener");
       mounted = false;
       unsubscribe();
     };
   }, []);
+
+  // Debug log state changes
+  useEffect(() => {
+    console.log("[Debug] Auth context state:", {
+      hasUser: !!user,
+      role,
+      isLoading,
+      isAuthenticated,
+      hasError: !!error
+    });
+  }, [user, role, isLoading, isAuthenticated, error]);
 
   const value = {
     user,

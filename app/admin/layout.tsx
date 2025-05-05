@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { AuthProvider } from '@/context/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
@@ -8,9 +9,16 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  console.log("[Debug] Admin layout rendering, path:", pathname);
+
   return (
     <AuthProvider>
-      <ProtectedRoute>{children}</ProtectedRoute>
+      {pathname === '/admin/login' ? (
+        children
+      ) : (
+        <ProtectedRoute>{children}</ProtectedRoute>
+      )}
     </AuthProvider>
   );
 } 

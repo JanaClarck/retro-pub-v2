@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { adminAuth } from '@/firebase-config/admin';
+import { createSessionCookie } from '@/lib/server/auth';
 
-// Set session duration to 5 days
+// Session duration: 5 days
 const SESSION_DURATION = 60 * 60 * 24 * 5 * 1000;
 
+/**
+ * ⚠️ SERVER-ONLY ROUTE
+ * This route uses Firebase Admin SDK and must run in Node.js environment
+ */
 export async function POST(request: Request) {
   try {
     const { idToken } = await request.json();
@@ -16,21 +20,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify the ID token and create a session cookie
-    const expiresIn = SESSION_DURATION;
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, {
-      expiresIn,
-    });
+    // Create session cookie using server-only utility
+    const sessionCookie = await createSessionCookie(idToken, SESSION_DURATION);
 
     // Set cookie options
     const options = {
       name: '__session',
       value: sessionCookie,
-      maxAge: SESSION_DURATION,
+      maxAge: SESSION_DURATION / 1000, // Convert to seconds
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      path: '/',
       sameSite: 'lax' as const,
+      path: '/',
     };
 
     // Set the cookie
@@ -38,10 +39,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { status: 'success' },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'private, no-store',
+        },
+      }
     );
   } catch (error) {
-    console.error('Error creating session:', error);
+    console.error('Session creation error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

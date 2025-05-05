@@ -1,28 +1,29 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifySessionCookie } from '@/lib/auth/verifySession';
 
+/**
+ * Simple middleware that checks for session cookie presence
+ * No Firebase Admin SDK usage to ensure Edge compatibility
+ */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // ✅ Skip middleware for login page
+  // Skip middleware for login page
   if (pathname === '/admin/login') {
     return NextResponse.next();
   }
 
-  // ✅ Check for Firebase session cookie
-  const session = request.cookies.get('__session')?.value;
-  const isValidSession = await verifySessionCookie(session);
+  // Check for session cookie presence
+  const sessionCookie = request.cookies.get('__session')?.value;
 
-  if (!isValidSession) {
-    const loginUrl = new URL('/admin/login', request.url);
-    return NextResponse.redirect(loginUrl);
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL('/admin/login', request.url));
   }
 
+  // Allow request to continue - actual session verification happens in API routes
   return NextResponse.next();
 }
 
-// ✅ Vercel-safe matcher
 export const config = {
   matcher: ['/admin/:path*'],
 };

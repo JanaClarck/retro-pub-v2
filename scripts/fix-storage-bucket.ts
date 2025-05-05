@@ -5,7 +5,7 @@ import axios from 'axios';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
 import { readFile, writeFile, mkdir } from 'fs/promises';
-import { storage, config, adminApp } from '../firebase-config/admin';
+import { adminStorage, config } from '../firebase-config/admin';
 
 const streamPipeline = promisify(pipeline);
 
@@ -60,7 +60,7 @@ async function setupPlaceholder(): Promise<void> {
 }
 
 async function uploadToStorage(): Promise<string> {
-  const bucket = storage.bucket();
+  const bucket = adminStorage.bucket();
 
   console.log('ℹ️ Uploading to Firebase Storage...');
   await bucket.upload(PLACEHOLDER_PATH, {

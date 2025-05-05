@@ -10,20 +10,20 @@ export default function EventError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
   useEffect(() => {
     // Log the error to an error reporting service
     console.error('Event Error:', error);
   }, [error]);
 
-  const router = useRouter();
-
   return (
-    <div className="container mx-auto px-6 py-24 text-center">
-      <h2 className="text-3xl font-bold text-gray-900 mb-4">
-        Unable to Load Event
-      </h2>
+    <div className="min-h-screen flex flex-col items-center justify-center text-center p-4 bg-gray-50">
+      <h1 className="text-3xl font-bold text-gray-900 mb-4">
+        Event Not Available
+      </h1>
       <p className="text-lg text-gray-600 mb-8">
-        We couldn't load the event details. The event might have been removed or is temporarily unavailable.
+        {error.message || 'Unable to load the event details at this time.'}
       </p>
       <div className="space-x-4">
         <button

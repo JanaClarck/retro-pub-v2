@@ -121,3 +121,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contact
 
 For any questions or suggestions, please contact us at info@retropub.com
+
+## Firebase Admin SDK Usage
+
+⚠️ **Important: Firebase Admin SDK Limitations**
+
+The Firebase Admin SDK can only be used in Node.js environments. It is NOT compatible with Edge Runtime or client-side code.
+
+### Allowed Usage:
+- API Routes (`/app/api/**/route.ts`)
+- Server-side utilities (`/lib/server/*`)
+- CLI scripts (`/scripts/*`)
+
+### Forbidden Usage:
+- Edge Runtime functions
+- Client-side code
+- Middleware (unless explicitly configured with `runtime: 'nodejs'`)
+- React components or hooks
+
+All Firebase Admin logic is centralized in `/lib/server/auth.ts`. Do not import Firebase Admin SDK directly in other files.

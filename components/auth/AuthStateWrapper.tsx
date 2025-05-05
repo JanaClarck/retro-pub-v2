@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
@@ -19,20 +19,21 @@ export function AuthStateWrapper({
 }: AuthStateWrapperProps) {
   const { isLoading, user, role, isAuthenticated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   if (isLoading) {
     return <LoadingSpinner />;
   }
 
-  if (requireAuth && !isAuthenticated) {
+  if (requireAuth && !isAuthenticated && pathname !== redirectTo) {
     router.push(redirectTo);
     return <LoadingSpinner />;
   }
 
-  if (requireAdmin && role !== 'admin') {
+  if (requireAdmin && role !== 'admin' && pathname !== redirectTo) {
     router.push(redirectTo);
     return <LoadingSpinner />;
   }
 
   return <>{children}</>;
-} 
+}

@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui';
-import { MenuItem } from '@/services/menu';
+import { MenuItem } from '@/types';
 
 interface MenuTableProps {
   items: MenuItem[];

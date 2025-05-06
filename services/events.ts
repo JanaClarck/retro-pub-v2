@@ -1,21 +1,8 @@
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
 import { db, auth } from '@/firebase-config/client';
 import { COLLECTIONS } from '@/constants/collections';
-
-export interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  imageUrl?: string;
-  price: number;
-  capacity: number;
-  location: string;
-  duration: string;
-  isActive: boolean;
-  createdAt: number;
-}
+import { EventSchema } from '@/lib/validation/schemas';
+import type { Event } from '@/types';
 
 // Helper function to check authentication
 function checkAuth() {
@@ -46,7 +33,8 @@ export async function addEvent(data: Omit<Event, 'id'>): Promise<string> {
 
 export async function updateEvent(id: string, data: Partial<Event>): Promise<void> {
   checkAuth();
-  await updateDoc(doc(db, COLLECTIONS.EVENTS, id), data);
+  const validatedData = EventSchema.partial().parse(data);
+  await updateDoc(doc(db, COLLECTIONS.EVENTS, id), validatedData);
 }
 
 export async function deleteEvent(id: string): Promise<void> {
@@ -62,4 +50,15 @@ export function formatDateForInput(date: string): string {
 // Helper function to format time for input fields
 export function formatTimeForInput(time: string): string {
   return time.padStart(5, '0'); // Ensures HH:MM format
+}
+
+export async function createEvent(data: Omit<Event, 'id' | 'createdAt'>) {
+  const validatedData = EventSchema.parse(data);
+  
+  const docRef = await addDoc(collection(db, COLLECTIONS.EVENTS), {
+    ...validatedData,
+    createdAt: new Date().toISOString(),
+  });
+
+  return docRef.id;
 } 

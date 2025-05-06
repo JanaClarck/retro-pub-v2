@@ -6,7 +6,8 @@ import { AuthStateWrapper } from '@/components/auth/AuthStateWrapper';
 import { Card, Button, LoadingSpinner } from '@/components/ui';
 import { MenuItemForm } from '@/components/admin/menu/MenuItemForm';
 import { MenuTable } from '@/components/admin/menu/MenuTable';
-import { getMenuItems, addMenuItem, updateMenuItem, deleteMenuItem, MenuItem } from '@/services/menu';
+import { getMenuItems, addMenuItem, updateMenuItem, deleteMenuItem } from '@/services/menu';
+import type { MenuItem } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 
 function MenuPage() {
@@ -43,7 +44,7 @@ function MenuPage() {
   }, [isAuthenticated]);
 
   // Add new item
-  const handleAdd = async (data: Omit<MenuItem, 'id'>) => {
+  const handleAdd = async (data: Omit<MenuItem, 'id' | 'createdAt'>) => {
     if (!isAuthenticated) return;
     setIsSubmitting(true);
     try {
@@ -59,7 +60,7 @@ function MenuPage() {
   };
 
   // Update item
-  const handleUpdate = async (data: Omit<MenuItem, 'id'>) => {
+  const handleUpdate = async (data: Partial<Omit<MenuItem, 'id' | 'createdAt'>>) => {
     if (!isAuthenticated || !editingItem?.id) return;
     setIsSubmitting(true);
     try {

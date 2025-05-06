@@ -1,25 +1,23 @@
+// app/events/[id]/page.tsx
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { FirestoreDocument } from '@/firebase-config/firestore';
+import Link from 'next/link';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { formatDate, formatTime } from '@/lib/utils/dateTime';
 import { getEventDocument } from '@/lib/firebase/events';
 import { Button } from '@/components/ui/Button';
+import { Event } from '@/types';
 
-interface Event extends FirestoreDocument {
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  imageUrl: string;
-  price: number;
-  capacity: number;
-  location: string;
-  duration: number;
-}
+type Props = {
+  params: { id: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+};
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const event = await getEventDocument(params.id) as Event | null;
+export async function generateMetadata(
+  { params }: Props
+): Promise<Metadata> {
+  const { id } = params;
+  const event = await getEventDocument(id) as Event | null;
   
   if (!event) {
     return {
@@ -33,12 +31,11 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
-export default async function EventPage({ params }: { params: { id: string } }) {
-  const event = await getEventDocument(params.id) as Event | null;
+export default async function EventPage({ params }: Props) {
+  const { id } = params;
+  const event = await getEventDocument(id) as Event | null;
 
-  if (!event) {
-    notFound();
-  }
+  if (!event) return notFound();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -76,11 +73,13 @@ export default async function EventPage({ params }: { params: { id: string } }) 
               <p>{event.capacity} people</p>
             </div>
           </div>
-          <Button className="mt-8 w-full md:w-auto" size="lg">
-            Book Now
-          </Button>
+          <Link href={`/booking?eventId=${id}`} className="block">
+            <Button className="mt-8 w-full md:w-auto" size="lg">
+              Book Now
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
   );
-} 
+}

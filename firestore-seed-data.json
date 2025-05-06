@@ -1,0 +1,58 @@
+{
+  "menu": [
+    {
+      "id": "classic_burger",
+      "title": "Classic Burger",
+      "description": "Beef patty with lettuce, tomato, and our signature sauce.",
+      "price": 9.5,
+      "imageUrl": "https://retropub.s3.eu-central-1.amazonaws.com/menu/classic_burger.jpg"
+    },
+    {
+      "id": "chicken_wings",
+      "title": "Spicy Chicken Wings",
+      "description": "6pcs with hot sauce and ranch dip.",
+      "price": 6.0,
+      "imageUrl": "https://retropub.s3.eu-central-1.amazonaws.com/menu/chicken_wings.jpg"
+    },
+    {
+      "id": "lager_draft",
+      "title": "Retro Lager (Draft)",
+      "description": "Light, crisp lager brewed locally.",
+      "price": 3.5,
+      "imageUrl": "https://retropub.s3.eu-central-1.amazonaws.com/menu/lager_draft.jpg"
+    }
+  ],
+  "events": [
+    {
+      "id": "live_band_may10",
+      "title": "Live Band: Rock Revival",
+      "description": "A night of classic rock hits performed live.",
+      "date": "2025-05-10T21:00:00Z",
+      "capacity": 80
+    },
+    {
+      "id": "quiz_night_may12",
+      "title": "Pub Quiz Night",
+      "description": "Assemble your team and win prizes!",
+      "date": "2025-05-12T20:00:00Z",
+      "capacity": 60
+    }
+  ],
+  "gallery": [
+    {
+      "id": "interior_shot",
+      "imageUrl": "https://retropub.s3.eu-central-1.amazonaws.com/gallery/interior.jpg",
+      "alt": "Retro Pub interior"
+    },
+    {
+      "id": "stage_photo",
+      "imageUrl": "https://retropub.s3.eu-central-1.amazonaws.com/gallery/stage.jpg",
+      "alt": "Live performance stage"
+    },
+    {
+      "id": "burger_closeup",
+      "imageUrl": "https://retropub.s3.eu-central-1.amazonaws.com/gallery/burger_closeup.jpg",
+      "alt": "Close-up of Retro Pub burger"
+    }
+  ]
+}

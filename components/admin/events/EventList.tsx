@@ -1,4 +1,4 @@
-import { Event } from '@/services/events';
+import { Event } from '@/types';
 import { Button, Card } from '@/components/ui';
 import { OptimizedImage } from '@/components/ui/OptimizedImage';
 import { EventListSkeleton } from '@/components/ui/Skeleton';

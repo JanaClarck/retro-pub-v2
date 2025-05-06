@@ -1,19 +1,12 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { adminAuth } from '@/firebase-config/admin';
+import { getAdminUser } from './actions';
 
 export default async function AdminPage() {
-  const cookieStore = cookies();
-  const session = cookieStore.get('__session')?.value;
-
-  if (!session) redirect('/menu');
-
-  try {
-    const decoded = await adminAuth.verifySessionCookie(session, true);
-    if (!decoded || !decoded.uid) redirect('/menu');
-  } catch (err) {
-    redirect('/menu');
-  }
-
-  return <div>🔧 Authenticated Admin Panel</div>;
+  const user = await getAdminUser();
+  
+  return (
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+      <p className="text-gray-600">Welcome, {user.email}</p>
+    </div>
+  );
 } 

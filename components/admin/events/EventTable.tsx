@@ -1,4 +1,4 @@
-import { Event } from '@/services/events';
+import { Event } from '@/types';
 import { Button } from '@/components/ui';
 import { format } from 'date-fns';
 

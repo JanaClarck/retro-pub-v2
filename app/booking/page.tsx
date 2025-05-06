@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase/firebase';
-import { COLLECTIONS } from '@/constants/collections';
+import { useSearchParams } from 'next/navigation';
+import { createBooking } from './actions';
+import type { Booking } from '@/types';
 
 interface BookingFormData {
   name: string;
@@ -11,11 +11,15 @@ interface BookingFormData {
   phone: string;
   date: string;
   time: string;
-  guests: number;
-  notes: string;
+  partySize: number;
+  specialRequests?: string;
+  eventId?: string;
 }
 
 export default function BookingPage() {
+  const searchParams = useSearchParams();
+  const eventId = searchParams.get('eventId');
+  
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState<BookingFormData>({
@@ -24,8 +28,9 @@ export default function BookingPage() {
     phone: '',
     date: '',
     time: '',
-    guests: 2,
-    notes: '',
+    partySize: 1,
+    specialRequests: '',
+    eventId: eventId || undefined,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,11 +38,7 @@ export default function BookingPage() {
     setLoading(true);
 
     try {
-      await addDoc(collection(db, COLLECTIONS.BOOKINGS), {
-        ...formData,
-        status: 'pending',
-        createdAt: new Date(),
-      });
+      await createBooking(formData);
       setSuccess(true);
       setFormData({
         name: '',
@@ -45,8 +46,9 @@ export default function BookingPage() {
         phone: '',
         date: '',
         time: '',
-        guests: 2,
-        notes: '',
+        partySize: 1,
+        specialRequests: '',
+        eventId: eventId || undefined,
       });
     } catch (error) {
       console.error('Error submitting booking:', error);
@@ -60,7 +62,7 @@ export default function BookingPage() {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'guests' ? parseInt(value) : value,
+      [name]: name === 'partySize' ? parseInt(value) : value,
     }));
   };
 
@@ -172,14 +174,14 @@ export default function BookingPage() {
           </div>
 
           <div>
-            <label htmlFor="guests" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="partySize" className="block text-sm font-medium text-gray-700">
               Number of Guests
             </label>
             <select
-              id="guests"
-              name="guests"
+              id="partySize"
+              name="partySize"
               required
-              value={formData.guests}
+              value={formData.partySize}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500"
             >
@@ -190,14 +192,14 @@ export default function BookingPage() {
           </div>
 
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="specialRequests" className="block text-sm font-medium text-gray-700">
               Special Requests
             </label>
             <textarea
-              id="notes"
-              name="notes"
+              id="specialRequests"
+              name="specialRequests"
               rows={3}
-              value={formData.notes}
+              value={formData.specialRequests}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500"
               placeholder="Any dietary requirements or special requests?"

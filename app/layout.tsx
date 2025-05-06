@@ -6,8 +6,10 @@ import { AuthProvider } from '@/context/AuthContext';
 
 const inter = Inter({ subsets: ["latin"] });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://retropub.vercel.app';
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://retropub.vercel.app"),
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'Retro Pub - Traditional British Pub Experience',
     template: '%s | Retro Pub'

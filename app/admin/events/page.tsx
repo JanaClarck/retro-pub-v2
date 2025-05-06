@@ -17,7 +17,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { withAdminAuth } from '@/components/auth/withAdminAuth';
 import { Card, Button } from '@/components/ui';
 import { EventForm } from '@/components/admin/events/EventForm';
-import { Event } from '@/services/events';
+import { Event } from '@/types';
 import { EventList } from '@/components/admin/events/EventList';
 import { COLLECTIONS } from '@/constants/collections';
 

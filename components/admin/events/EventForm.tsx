@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Input } from '@/components/ui';
-import { Event, formatDateForInput, formatTimeForInput } from '@/services/events';
+import { formatDateForInput, formatTimeForInput } from '@/services/events';
+import { Event } from '@/types';
 
 interface EventFormProps {
   initialData?: Event;
@@ -20,13 +21,13 @@ export function EventForm({
   const [formData, setFormData] = useState<Omit<Event, 'id' | 'createdAt'>>({
     title: initialData?.title || '',
     description: initialData?.description || '',
-    date: initialData?.date ? formatDateForInput(initialData.date) : '',
-    time: initialData?.time ? formatTimeForInput(initialData.time) : '',
+    date: initialData?.date || '',
+    time: initialData?.time || '',
     imageUrl: initialData?.imageUrl || '',
     price: initialData?.price || 0,
-    capacity: initialData?.capacity || 0,
+    capacity: initialData?.capacity || 1,
     location: initialData?.location || '',
-    duration: initialData?.duration || '',
+    duration: initialData?.duration || 60,
     isActive: initialData?.isActive ?? true,
   });
 
@@ -45,7 +46,7 @@ export function EventForm({
           required
           disabled={disabled}
         />
-
+        
         <Input
           label="Location"
           value={formData.location}
@@ -83,11 +84,11 @@ export function EventForm({
         />
 
         <Input
-          type="text"
-          label="Duration"
+          type="number"
+          label="Duration (minutes)"
           value={formData.duration}
-          onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-          placeholder="e.g. 2 hours"
+          onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
+          min={1}
           required
           disabled={disabled}
         />
@@ -108,7 +109,7 @@ export function EventForm({
           label="Capacity"
           value={formData.capacity}
           onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
-          min={0}
+          min={1}
           required
           disabled={disabled}
         />
@@ -117,6 +118,7 @@ export function EventForm({
           label="Image URL"
           value={formData.imageUrl}
           onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+          required
           disabled={disabled}
         />
 

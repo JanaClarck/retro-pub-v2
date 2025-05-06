@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Button, Input } from '@/components/ui';
-import { MenuItem } from '@/services/menu';
+import { MenuItem } from '@/types';
 
 interface MenuItemFormProps {
   initialData?: MenuItem;
-  onSubmit: (data: Omit<MenuItem, 'id'>) => Promise<void>;
+  onSubmit: (data: Omit<MenuItem, 'id' | 'createdAt'>) => Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
   disabled?: boolean;
@@ -17,7 +17,7 @@ export function MenuItemForm({
   isLoading,
   disabled
 }: MenuItemFormProps) {
-  const [formData, setFormData] = useState<Omit<MenuItem, 'id'>>({
+  const [formData, setFormData] = useState<Omit<MenuItem, 'id' | 'createdAt'>>({
     name: initialData?.name || '',
     description: initialData?.description || '',
     price: initialData?.price || 0,

@@ -1,14 +1,23 @@
-import { classNames } from '@/lib/utils';
+import { twMerge } from 'tailwind-merge';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
-export function LoadingSpinner() {
+export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) {
+  const sizeClasses = {
+    sm: 'h-6 w-6',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12'
+  };
+
   return (
-    <div className="flex justify-center items-center py-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+    <div className={twMerge('flex justify-center items-center', className)}>
+      <div className={twMerge(
+        'animate-spin rounded-full border-b-2 border-amber-600',
+        sizeClasses[size]
+      )}></div>
     </div>
   );
 } 

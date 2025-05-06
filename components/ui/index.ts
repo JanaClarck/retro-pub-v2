@@ -1,8 +1,7 @@
 export * from './Button';
-export * from './Card';
+export { Card, CardHeader, CardBody, CardFooter } from './Card';
 export * from './Input';
 export * from './TextArea';
 export * from './LoadingSpinner';
 export * from './Skeleton';
-export { Modal } from './Modal';
-export { CardHeader, CardBody, CardFooter } from './Card'; 
+export { Modal } from './Modal'; 

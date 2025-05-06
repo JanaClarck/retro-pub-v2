@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebase-config/client";
 import { createUserDocument } from "@/services/user";
-import { Card, CardBody, Input, Button } from "@/components/ui";
+import { Card, CardBody, Input, Button, LoadingSpinner } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 
 // Debug log for component mount
@@ -113,7 +113,7 @@ export default function AdminLoginPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mb-4"></div>
+          <LoadingSpinner size="lg" className="mb-4" />
           <p className="text-gray-600">Loading authentication state...</p>
           <p className="text-sm text-gray-500 mt-2">This should only take a moment...</p>
         </div>

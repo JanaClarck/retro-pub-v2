@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { LoadingSpinner } from '@/components/ui';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,14 +15,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const pathname = usePathname();
 
   useEffect(() => {
+    console.log("[Debug] ProtectedRoute effect running:", {
+      isLoading,
+      hasUser: !!user,
+      role,
+      pathname
+    });
+
     if (!isLoading) {
-      // If not authenticated and not on login page, redirect to login
-      if ((!user || role !== 'admin') && pathname !== '/admin/login') {
+      if (!user || role !== 'admin') {
+        console.log("[Debug] Unauthorized access, redirecting to login");
         router.replace('/admin/login');
-      }
-      // If authenticated and on login page, redirect to admin dashboard
-      else if (user && role === 'admin' && pathname === '/admin/login') {
-        router.replace('/admin');
       }
     }
   }, [user, role, isLoading, router, pathname]);
@@ -30,21 +34,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <LoadingSpinner size="lg" className="mb-4" />
+          <p className="text-gray-600">Verifying access...</p>
         </div>
       </div>
     );
   }
 
-  // Only render children if authenticated as admin and not on login page
-  // OR if on login page and not authenticated
-  if (
-    (user && role === 'admin' && pathname !== '/admin/login') ||
-    ((!user || role !== 'admin') && pathname === '/admin/login')
-  ) {
-    return <>{children}</>;
+  if (!user || role !== 'admin') {
+    return null;
   }
 
-  return null;
+  return <>{children}</>;
 } 

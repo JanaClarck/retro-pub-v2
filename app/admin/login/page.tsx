@@ -63,10 +63,21 @@ export default function AdminLoginPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
+    let redirectTimeout: NodeJS.Timeout;
+    
     if (!isLoading && user && role === 'admin') {
       console.log("[Debug] Redirecting authenticated admin to dashboard");
-      router.replace('/admin');
+      // Add a small delay to prevent immediate redirect
+      redirectTimeout = setTimeout(() => {
+        router.replace('/admin');
+      }, 100);
     }
+
+    return () => {
+      if (redirectTimeout) {
+        clearTimeout(redirectTimeout);
+      }
+    };
   }, [user, role, isLoading, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,7 +1,8 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { enableIndexedDbPersistence } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,7 +17,20 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
-const db = getFirestore(app);
+
+// Initialize Firestore with memory cache enabled
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  cacheSizeBytes: 50 * 1024 * 1024, // 50MB cache size
+});
+
+// Enable offline persistence if in browser environment
+if (typeof window !== 'undefined') {
+  enableIndexedDbPersistence(db).catch((err) => {
+    console.error('Error enabling offline persistence:', err);
+  });
+}
+
 const storage = getStorage(app);
 
 export { app, auth, db, storage }; 

@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
   console.log("[Debug] Rendering AdminLoginPage component");
   
   const router = useRouter();
-  const { user, role, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -58,27 +58,14 @@ export default function AdminLoginPage() {
 
   // Debug log for auth state
   useEffect(() => {
-    console.log("[Debug] Auth state:", { isLoading, user: !!user, role });
-  }, [isLoading, user, role]);
+    console.log("[Debug] Auth state:", { isLoading, user: !!user });
+  }, [isLoading, user]);
 
   // Redirect if already authenticated
-  useEffect(() => {
-    let redirectTimeout: NodeJS.Timeout;
-    
-    if (!isLoading && user && role === 'admin') {
-      console.log("[Debug] Redirecting authenticated admin to dashboard");
-      // Add a small delay to prevent immediate redirect
-      redirectTimeout = setTimeout(() => {
-        router.replace('/admin');
-      }, 100);
-    }
-
-    return () => {
-      if (redirectTimeout) {
-        clearTimeout(redirectTimeout);
-      }
-    };
-  }, [user, role, isLoading, router]);
+  if (!isLoading && user?.role === 'admin') {
+    router.replace('/admin/menu');
+    return null;
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -93,26 +80,11 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      // Sign in with Firebase Auth
-      const { user } = await signInWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-
-      console.log("[Debug] Login successful, creating user document");
-      // Create or update user document in Firestore
-      await createUserDocument(user.uid, user.email!);
-
-      // The router.replace will happen automatically through the useEffect above
-      // once the auth state changes
-    } catch (error: any) {
-      console.error("[Debug] Login error:", error);
-      setError(
-        error.code === 'auth/invalid-credential' 
-          ? "Invalid email or password."
-          : "An error occurred. Please try again."
-      );
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      router.replace('/admin/menu');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Invalid email or password');
     } finally {
       setIsSubmitting(false);
     }
@@ -130,12 +102,6 @@ export default function AdminLoginPage() {
         </div>
       </div>
     );
-  }
-
-  // Don't show login form if already authenticated
-  if (user && role === 'admin') {
-    console.log("[Debug] User is authenticated, returning null");
-    return null;
   }
 
   console.log("[Debug] Rendering login form");

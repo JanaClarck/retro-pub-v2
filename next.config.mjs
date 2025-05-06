@@ -9,6 +9,7 @@ const nextConfig = {
         pathname: '/v0/b/**',
       },
     ],
+    unoptimized: true, // Required for static export
   },
   webpack: (config) => {
     config.resolve.fallback = {
@@ -20,6 +21,14 @@ const nextConfig = {
     };
     return config;
   },
+  // Enable static exports
+  output: 'export',
+  // Disable server features that are not compatible with static export
+  experimental: {
+    appDocumentPreloading: false,
+  },
+  // Disable server actions for static export
+  serverActions: false,
 }
 
 export default nextConfig; 

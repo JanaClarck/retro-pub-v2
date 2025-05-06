@@ -8,11 +8,11 @@ import { GalleryCategory } from '@/components/admin/gallery/GalleryCategorySelec
 import { getGalleryCategories, getGalleryImages, addGalleryCategory, deleteGalleryCategory, addGalleryImage, deleteGalleryImage, ensureDefaultCategory } from '@/services/gallery';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/firebase-config/client';
-import { useAuth } from '@/context/AuthContext';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { COLLECTIONS } from '@/constants/collections';
 
 function GalleryPage() {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAdminAuth();
   const [categories, setCategories] = useState<GalleryCategory[]>([]);
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,7 +20,7 @@ function GalleryPage() {
 
   // Fetch categories and images
   const fetchData = async () => {
-    if (!isAuthenticated) return;
+    if (!user) return;
     
     setIsLoading(true);
     setError(null);
@@ -44,14 +44,14 @@ function GalleryPage() {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user) {
       fetchData();
     }
-  }, [isAuthenticated]);
+  }, [user]);
 
   // Add new category
   const handleAddCategory = async (name: string) => {
-    if (!isAuthenticated) return;
+    if (!user) return;
     try {
       await addGalleryCategory(name);
       await fetchData();
@@ -63,7 +63,7 @@ function GalleryPage() {
 
   // Delete category and all its images
   const handleDeleteCategory = async (category: GalleryCategory) => {
-    if (!isAuthenticated) return;
+    if (!user) return;
     try {
       // Delete all images in this category
       const categoryImages = images.filter(img => img.categoryId === category.id);
@@ -80,7 +80,7 @@ function GalleryPage() {
 
   // Add new image
   const handleAddImage = async (categoryId: string, url: string, fileName: string) => {
-    if (!isAuthenticated) return;
+    if (!user) return;
     try {
       const newImage: GalleryImage = {
         id: '', // This will be set by Firestore
@@ -104,7 +104,7 @@ function GalleryPage() {
 
   // Delete image
   const handleDeleteImage = async (image: GalleryImage) => {
-    if (!isAuthenticated) return;
+    if (!user) return;
     try {
       await deleteGalleryImage(image);
       await fetchData();

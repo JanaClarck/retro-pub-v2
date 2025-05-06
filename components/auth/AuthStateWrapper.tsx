@@ -17,7 +17,7 @@ export function AuthStateWrapper({
   requireAdmin = false,
   redirectTo = '/admin/login'
 }: AuthStateWrapperProps) {
-  const { isLoading, user, role, isAuthenticated } = useAuth();
+  const { isLoading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -25,12 +25,12 @@ export function AuthStateWrapper({
     return <LoadingSpinner />;
   }
 
-  if (requireAuth && !isAuthenticated && pathname !== redirectTo) {
+  if (requireAuth && !user && pathname !== redirectTo) {
     router.push(redirectTo);
     return <LoadingSpinner />;
   }
 
-  if (requireAdmin && role !== 'admin' && pathname !== redirectTo) {
+  if (requireAdmin && (!user?.role || user.role !== 'admin') && pathname !== redirectTo) {
     router.push(redirectTo);
     return <LoadingSpinner />;
   }

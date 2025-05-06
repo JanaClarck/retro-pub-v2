@@ -41,24 +41,31 @@ export function MenuItemForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          required
-          disabled={disabled}
-        />
-        
+        <div className="w-full">
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            Name
+          </label>
+          <input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+            disabled={isLoading || disabled}
+            className="rounded-lg border border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2 w-full"
+          />
+        </div>
+
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
             Category
           </label>
           <select
+            id="category"
             value={formData.category}
             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             required
-            disabled={disabled}
+            disabled={isLoading || disabled}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           >
             {categories.map((category) => (
               <option key={category.value} value={category.value}>
@@ -69,34 +76,46 @@ export function MenuItemForm({
         </div>
 
         <div className="md:col-span-2">
-          <Input
-            label="Description"
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+            Description
+          </label>
+          <input
+            id="description"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             required
-            disabled={disabled}
+            disabled={isLoading || disabled}
+            className="rounded-lg border border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2 w-full"
           />
         </div>
 
         <div>
-          <Input
+          <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+            Price
+          </label>
+          <input
+            id="price"
             type="number"
-            label="Price"
             value={formData.price}
             onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
             min={0}
             step={0.01}
             required
-            disabled={disabled}
+            disabled={isLoading || disabled}
+            className="rounded-lg border border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2 w-full"
           />
         </div>
 
         <div>
-          <Input
-            label="Image URL"
+          <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-1">
+            Image URL
+          </label>
+          <input
+            id="imageUrl"
             value={formData.imageUrl}
             onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-            disabled={disabled}
+            disabled={isLoading || disabled}
+            className="rounded-lg border border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2 w-full"
           />
         </div>
 
@@ -106,8 +125,8 @@ export function MenuItemForm({
               type="checkbox"
               checked={formData.isAvailable}
               onChange={(e) => setFormData({ ...formData, isAvailable: e.target.checked })}
+              disabled={isLoading || disabled}
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              disabled={disabled}
             />
             <span className="text-sm font-medium text-gray-700">Available</span>
           </label>
@@ -125,7 +144,11 @@ export function MenuItemForm({
             Cancel
           </Button>
         )}
-        <Button type="submit" isLoading={isLoading} disabled={disabled}>
+        <Button 
+          type="submit" 
+          isLoading={isLoading} 
+          disabled={isLoading || disabled}
+        >
           {initialData ? 'Update Item' : 'Add Item'}
         </Button>
       </div>

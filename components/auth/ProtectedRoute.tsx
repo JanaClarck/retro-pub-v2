@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { LoadingSpinner } from '@/components/ui';
 
@@ -10,25 +10,21 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, role, isLoading } = useAuth();
+  const { user, isLoading, error } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    console.log("[Debug] ProtectedRoute effect running:", {
+    console.debug("[Debug] ProtectedRoute effect running:", {
       isLoading,
       hasUser: !!user,
-      role,
-      pathname
+      error
     });
 
-    if (!isLoading) {
-      if (!user || role !== 'admin') {
-        console.log("[Debug] Unauthorized access, redirecting to login");
-        router.replace('/admin/login');
-      }
+    if (!isLoading && !user) {
+      console.debug("[Debug] No admin user, redirecting to login");
+      router.replace('/admin/login');
     }
-  }, [user, role, isLoading, router, pathname]);
+  }, [user, isLoading, router, error]);
 
   if (isLoading) {
     return (
@@ -36,12 +32,15 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         <div className="flex flex-col items-center">
           <LoadingSpinner size="lg" className="mb-4" />
           <p className="text-gray-600">Verifying access...</p>
+          {error && (
+            <p className="text-red-600 mt-2 text-sm">{error}</p>
+          )}
         </div>
       </div>
     );
   }
 
-  if (!user || role !== 'admin') {
+  if (!user) {
     return null;
   }
 

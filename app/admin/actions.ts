@@ -1,29 +1,30 @@
-'use server';
+import { auth } from '@/firebase-config/client';
+import { onAuthStateChanged } from 'firebase/auth';
 
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { adminAuth } from '@/firebase-config/admin';
-
-export async function verifyAdminSession() {
-  const session = cookies().get('__session')?.value;
-  
-  if (!session) {
-    redirect('/admin/login');
-  }
-
-  try {
-    const decodedToken = await adminAuth.verifySessionCookie(session, true);
-    return decodedToken;
-  } catch (error) {
-    console.error('Admin session verification failed:', error);
-    redirect('/admin/login');
-  }
+export function getAdminUser() {
+  return new Promise((resolve, reject) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe(); // Unsubscribe immediately after first callback
+      if (user) {
+        resolve(user);
+      } else {
+        window.location.href = '/admin/login';
+        reject(new Error('Not authenticated'));
+      }
+    });
+  });
 }
 
-export async function getAdminUser() {
-  const decodedToken = await verifyAdminSession();
-  if (!decodedToken?.uid) {
-    redirect('/admin/login');
-  }
-  return decodedToken;
+export function verifyAdminSession() {
+  return new Promise((resolve, reject) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe(); // Unsubscribe immediately after first callback
+      if (user) {
+        resolve(user);
+      } else {
+        window.location.href = '/admin/login';
+        reject(new Error('Not authenticated'));
+      }
+    });
+  });
 } 

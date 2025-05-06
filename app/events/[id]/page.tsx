@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { formatDate, formatTime } from '@/lib/utils/dateTime';
-import { getEventDocument } from '@/lib/firebase/events';
+import { getEventDocument, getAllEvents } from '@/lib/firebase/events';
 import { Button } from '@/components/ui/Button';
 import { Event } from '@/types';
 
@@ -12,6 +12,14 @@ type Props = {
   params: { id: string };
   searchParams?: { [key: string]: string | string[] | undefined };
 };
+
+// Generate static paths for all events
+export async function generateStaticParams() {
+  const events = await getAllEvents();
+  return events.map((event) => ({
+    id: event.id,
+  }));
+}
 
 export async function generateMetadata(
   { params }: Props

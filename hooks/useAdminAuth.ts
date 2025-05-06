@@ -1,73 +1,91 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/firebase-config/client';
+import { useRouter } from 'next/navigation';
+import { auth } from '@/firebase-config/client';
+import type { User } from 'firebase/auth';
+import type { AdminUser, AuthState } from '@/types/auth';
 
-export interface AdminUser extends User {
-  role: 'admin';
-}
-
-export function useAdminAuth() {
-  const [user, setUser] = useState<AdminUser | null | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+export function useAdminAuth(): AuthState {
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    isLoading: true,
+    error: null
+  });
+  
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+    console.debug('[Auth] Setting up auth listener');
+    let mounted = true;
+
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser: User | null) => {
+      console.debug('[Auth] Auth state changed:', { hasUser: !!firebaseUser });
+
+      if (!mounted) {
+        console.debug('[Auth] Component unmounted, skipping updates');
+        return;
+      }
+
+      if (!firebaseUser) {
+        console.debug('[Auth] No user, resetting state');
+        setState({ user: null, isLoading: false, error: null });
+        return;
+      }
+
       try {
-        if (!firebaseUser) {
-          setUser(null);
-          setIsLoading(false);
-          // Only redirect if not on login page
-          if (pathname !== '/admin/login') {
-            router.push('/admin/login');
+        // Get ID token for API call
+        const token = await firebaseUser.getIdToken();
+        console.debug('[Auth] Got ID token, checking admin status');
+
+        // Check admin status
+        const response = await fetch('/api/auth/check-admin', {
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to verify admin status');
+        }
+
+        const { isAdmin, user } = await response.json();
+        console.debug('[Auth] Admin check response:', { isAdmin });
+
+        if (!isAdmin) {
+          console.debug('[Auth] User is not admin, signing out');
+          await auth.signOut();
+          setState({ 
+            user: null, 
+            isLoading: false, 
+            error: 'Unauthorized access. Please sign in with an admin account.' 
+          });
+          router.replace('/admin/login');
           return;
         }
 
-        // Get ID token for session cookie
-        const idToken = await firebaseUser.getIdToken();
-        
-        // Set session cookie via API route
-        await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ idToken }),
+        console.debug('[Auth] Setting admin user state');
+        setState({ 
+          user: user as AdminUser, 
+          isLoading: false, 
+          error: null 
         });
-
-        // Check if user has admin role in Firestore
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        const userData = userDoc.data();
-
-        if (userData?.role === 'admin') {
-          setUser({ ...firebaseUser, role: 'admin' } as AdminUser);
-        } else {
-          // User is not an admin, sign them out
-          await auth.signOut();
-          // Clear session cookie
-          await fetch('/api/auth/session', { method: 'DELETE' });
-          setUser(null);
-          if (pathname !== '/admin/login') {
-            router.push('/admin/login');
-          }
-        }
       } catch (error) {
-        console.error('Error checking admin status:', error);
-        setUser(null);
-        if (pathname !== '/admin/login') {
-          router.push('/admin/login');
-        }
-      } finally {
-        setIsLoading(false);
+        console.error('[Auth] Error checking admin status:', error);
+        setState({ 
+          user: null, 
+          isLoading: false, 
+          error: 'Failed to verify admin status. Please try again.' 
+        });
       }
     });
 
-    return () => unsubscribe();
-  }, [router, pathname]);
+    return () => {
+      console.debug('[Auth] Cleaning up auth listener');
+      mounted = false;
+      unsubscribe();
+    };
+  }, [router]); // router is stable in Next.js
 
-  return { user, isLoading };
+  return state;
 } 

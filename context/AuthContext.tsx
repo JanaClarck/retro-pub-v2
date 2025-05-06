@@ -24,11 +24,13 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   console.log("[Debug] AuthProvider mounting");
   
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [authState, setAuthState] = useState<AuthContextType>({
+    user: null,
+    role: null,
+    isLoading: true,
+    isAuthenticated: false,
+    error: null,
+  });
 
   useEffect(() => {
     console.log("[Debug] Setting up Firebase auth listener");
@@ -38,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("[Debug] Auth state changed:", { 
         hasUser: !!firebaseUser,
         mounted,
-        currentLoading: isLoading
+        currentLoading: authState.isLoading
       });
 
       if (!mounted) {
@@ -49,38 +51,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         if (firebaseUser) {
           console.log("[Debug] User authenticated, fetching role");
-          setUser(firebaseUser);
-          setIsLoading(true); // Set loading while checking role
-          
           const userRole = await getUserRole(firebaseUser.uid);
           console.log("[Debug] User role fetched:", userRole);
           
           if (mounted) {
-            setRole(userRole);
-            setIsAuthenticated(userRole === 'admin');
-            setError(null);
+            // Batch state updates
+            setAuthState({
+              user: firebaseUser,
+              role: userRole,
+              isLoading: false,
+              isAuthenticated: !!userRole && userRole === 'admin',
+              error: null,
+            });
           }
         } else {
           console.log("[Debug] No user, resetting state");
           if (mounted) {
-            setUser(null);
-            setRole(null);
-            setIsAuthenticated(false);
-            setError(null);
+            // Batch state updates for logout
+            setAuthState({
+              user: null,
+              role: null,
+              isLoading: false,
+              isAuthenticated: false,
+              error: null,
+            });
           }
         }
       } catch (error) {
         console.error("[Debug] Error in auth state change:", error);
         if (mounted) {
-          setUser(null);
-          setRole(null);
-          setIsAuthenticated(false);
-          setError('Failed to authenticate. Please try again.');
-        }
-      } finally {
-        if (mounted) {
-          console.log("[Debug] Setting loading to false");
-          setIsLoading(false);
+          // Batch state updates for error
+          setAuthState({
+            user: null,
+            role: null,
+            isLoading: false,
+            isAuthenticated: false,
+            error: 'Failed to authenticate. Please try again.',
+          });
         }
       }
     });
@@ -95,24 +102,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Debug log state changes
   useEffect(() => {
     console.log("[Debug] Auth context state:", {
-      hasUser: !!user,
-      role,
-      isLoading,
-      isAuthenticated,
-      hasError: !!error
+      hasUser: !!authState.user,
+      role: authState.role,
+      isLoading: authState.isLoading,
+      isAuthenticated: authState.isAuthenticated,
+      hasError: !!authState.error
     });
-  }, [user, role, isLoading, isAuthenticated, error]);
-
-  const value = {
-    user,
-    role,
-    isLoading,
-    isAuthenticated,
-    error,
-  };
+  }, [authState]);
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={authState}>
       {children}
     </AuthContext.Provider>
   );
